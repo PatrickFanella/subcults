@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # ---------------------------------------------------------------------------
 # Runtime stage - alpine minimal (required for libvips shared libraries)
 # ---------------------------------------------------------------------------
-FROM alpine:3.21 AS production
+FROM alpine:3.23 AS production
 
 ARG VERSION
 ARG COMMIT_SHA
