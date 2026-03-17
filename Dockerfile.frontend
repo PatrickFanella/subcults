@@ -179,7 +179,7 @@ CMD ["nginx", "-g", "daemon off;"]
 # ---------------------------------------------------------------------------
 # Output stage - Alpine for copying to volumes (local dev / legacy)
 # ---------------------------------------------------------------------------
-FROM alpine:3.19 AS dist
+FROM alpine:3.23 AS dist
 
 COPY --from=builder /app/dist /dist
 
