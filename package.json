@@ -1,0 +1,27 @@
+{
+  "name": "subcults",
+  "version": "0.0.1",
+  "description": "Subcult connects underground and local music communities",
+  "private": true,
+  "scripts": {
+    "build": "cd web && npm run build && cd .. && mkdir -p dist && cp -r web/dist/* dist/",
+    "test": "cd web && npm test",
+    "test:e2e": "cd e2e && npm run test:e2e",
+    "test:e2e:ui": "cd e2e && npm run test:e2e:ui",
+    "test:e2e:report": "cd e2e && npm run test:e2e:report",
+    "test:load": "cd e2e && npm run test:load",
+    "lighthouse": "cd web && npm run build && cd .. && lhci autorun --config=lighthouserc.js",
+    "lighthouse:local": "cd web && npm run build && cd .. && npx serve -l 9000 web/dist",
+    "lint": "cd web && npm run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@lhci/cli": "^0.15.1",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

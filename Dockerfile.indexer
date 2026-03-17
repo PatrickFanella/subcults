@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1
+
+# =============================================================================
+# Indexer Dockerfile - Multi-stage production build for the Subcults Jetstream Indexer
+# Target: <10MB image, distroless nonroot, zero CVEs
+# =============================================================================
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+ARG BUILD_TIME=unknown
+
+# ---------------------------------------------------------------------------
+# Build stage
+# ---------------------------------------------------------------------------
+FROM golang:1.24-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION
+ARG COMMIT_SHA
+ARG BUILD_TIME
+
+WORKDIR /build
+
+RUN apk add --no-cache ca-certificates tzdata
+
+# Dependency layer (cached separately from source)
+COPY go.mod go.sum* ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+# Source layer
+COPY . .
+
+# Build static binary (indexer has no CGO dependencies)
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+    -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT_SHA} -X main.buildTime=${BUILD_TIME}" \
+    -o /build/indexer \
+    ./cmd/indexer
+
+# ---------------------------------------------------------------------------
+# Healthcheck binary - minimal wget from busybox for Docker healthchecks
+# ---------------------------------------------------------------------------
+FROM busybox:1.36-musl AS healthcheck
+
+# ---------------------------------------------------------------------------
+# Runtime stage - distroless for minimal attack surface
+# ---------------------------------------------------------------------------
+FROM gcr.io/distroless/static-debian12:nonroot
+
+LABEL org.opencontainers.image.title="subcults-indexer" \
+      org.opencontainers.image.description="Subcults Jetstream Indexer" \
+      org.opencontainers.image.source="https://github.com/subculture-collective/subcults" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT_SHA}"
+
+# Timezone data and CA certificates
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Application binary
+COPY --from=builder /build/indexer /app/indexer
+
+# Healthcheck binary (~1MB)
+COPY --from=healthcheck /bin/wget /usr/bin/wget
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/app/indexer"]

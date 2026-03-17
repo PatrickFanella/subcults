@@ -1,0 +1,108 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'e2e/**'
+      - 'internal/livekit/**'
+      - '.github/workflows/e2e-tests.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'web/**'
+      - 'e2e/**'
+      - 'internal/livekit/**'
+
+jobs:
+  e2e-tests:
+    name: E2E Stream Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            web/package-lock.json
+            e2e/package-lock.json
+      
+      - name: Install frontend dependencies
+        run: |
+          cd web
+          npm ci
+      
+      - name: Install E2E dependencies
+        run: |
+          cd e2e
+          npm ci
+      
+      - name: Install Playwright browsers
+        run: |
+          cd e2e
+          npx playwright install --with-deps
+      
+      - name: Build frontend
+        run: |
+          cd web
+          npm run build
+      
+      - name: Run E2E tests
+        run: |
+          cd e2e
+          npm run test:e2e
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e-report/
+          retention-days: 30
+      
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos
+          path: e2e/test-results/
+          retention-days: 7
+
+  load-tests:
+    name: Load Tests (k6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only run load tests on main/develop to save CI resources
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+      
+      - name: Run load tests (smoke test)
+        run: |
+          k6 run --vus 25 --duration 1m perf/k6/stream-load-test.js
+      
+      - name: Upload load test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results
+          path: perf/k6/stream-load-test-results.json
+          retention-days: 30

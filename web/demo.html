@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Boundary & Toast Demo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background-color: #1a1a1a;
+      color: white;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+    }
+    .section {
+      background-color: #2a2a2a;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .success-btn { background-color: #10b981; color: white; }
+    .error-btn { background-color: #ef4444; color: white; }
+    .info-btn { background-color: #3b82f6; color: white; }
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 9999;
+    }
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      min-width: 300px;
+      max-width: 500px;
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .toast.success { background-color: #10b981; }
+    .toast.error { background-color: #ef4444; }
+    .toast.info { background-color: #3b82f6; }
+    .toast-icon {
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+    .toast-message {
+      flex: 1;
+      font-size: 0.875rem;
+    }
+    .toast-dismiss {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      opacity: 0.8;
+    }
+    .toast-dismiss:hover {
+      opacity: 1;
+    }
+    .error-boundary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      padding: 2rem;
+      background-color: #1a1a1a;
+      border: 2px solid #ef4444;
+      border-radius: 0.5rem;
+      text-align: center;
+    }
+    .error-boundary h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #ef4444;
+    }
+    .error-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .info-box {
+      padding: 1.5rem;
+      background-color: #374151;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ Error Boundary & Toast Notifications Demo</h1>
+    
+    <div class="section">
+      <h2>Toast Notifications</h2>
+      <div class="button-group">
+        <button class="success-btn" onclick="showToast('success', 'Scene created successfully!')">
+          Show Success Toast
+        </button>
+        <button class="error-btn" onclick="showToast('error', 'Failed to save changes. Please try again.')">
+          Show Error Toast
+        </button>
+        <button class="info-btn" onclick="showToast('info', 'Loading your scenes...')">
+          Show Info Toast
+        </button>
+        <button onclick="showMultipleToasts()" style="background-color: #8b5cf6; color: white;">
+          Show Multiple Toasts
+        </button>
+        <button onclick="clearAllToasts()" style="background-color: white; color: #1a1a1a;">
+          Clear All Toasts
+        </button>
+      </div>
+      <div class="info-box">
+        <strong>About Toast Notifications:</strong>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Appear in the top-right corner</li>
+          <li>Auto-dismiss after 5 seconds</li>
+          <li>Fully accessible with ARIA live regions</li>
+          <li>Support success, error, and info types</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>Error Boundary</h2>
+      <div id="error-demo">
+        <button class="error-btn" onclick="triggerError()">
+          Trigger Rendering Error
+        </button>
+        <div style="margin-top: 1rem; padding: 1rem; background-color: #374151; border-radius: 0.5rem;">
+          Component rendered successfully ✓
+        </div>
+      </div>
+      <div class="info-box" style="margin-top: 1rem;">
+        <strong>About Error Boundaries:</strong>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Catch rendering errors in React components</li>
+          <li>Display fallback UI instead of crashing</li>
+          <li>Provide reload and report options</li>
+          <li>Filter stack traces in production</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast-container" id="toast-container"></div>
+  
+  <script>
+    let toastId = 0;
+    
+    function showToast(type, message, duration = 5000) {
+      const container = document.getElementById('toast-container');
+      const id = `toast-${toastId++}`;
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.id = id;
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      toast.setAttribute('aria-atomic', 'true');
+      
+      const icon = document.createElement('div');
+      icon.className = 'toast-icon';
+      icon.textContent = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+      
+      const msg = document.createElement('div');
+      msg.className = 'toast-message';
+      msg.textContent = message;
+      
+      const dismiss = document.createElement('button');
+      dismiss.className = 'toast-dismiss';
+      dismiss.textContent = '×';
+      dismiss.setAttribute('aria-label', 'Dismiss notification');
+      dismiss.onclick = () => removeToast(id);
+      
+      toast.appendChild(icon);
+      toast.appendChild(msg);
+      toast.appendChild(dismiss);
+      container.appendChild(toast);
+      
+      if (duration > 0) {
+        setTimeout(() => removeToast(id), duration);
+      }
+    }
+    
+    function removeToast(id) {
+      const toast = document.getElementById(id);
+      if (toast) {
+        toast.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => toast.remove(), 300);
+      }
+    }
+    
+    function clearAllToasts() {
+      const container = document.getElementById('toast-container');
+      container.innerHTML = '';
+    }
+    
+    function showMultipleToasts() {
+      showToast('success', 'First notification');
+      setTimeout(() => showToast('error', 'Second notification'), 200);
+      setTimeout(() => showToast('info', 'Third notification'), 400);
+    }
+    
+    function triggerError() {
+      const demo = document.getElementById('error-demo');
+      demo.innerHTML = `
+        <div class="error-boundary">
+          <h2>Something went wrong</h2>
+          <p>An unexpected error occurred. Please try refreshing the page.</p>
+          <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 0.5rem;">
+            Error: This is a simulated rendering error
+          </p>
+          <div class="error-actions">
+            <button onclick="location.reload()" style="background-color: white; color: #1a1a1a; padding: 0.75rem 1.5rem;">
+              Reload Page
+            </button>
+            <button onclick="alert('Report sent!')" style="background-color: transparent; color: white; border: 2px solid white; padding: 0.75rem 1.5rem;">
+              Report Issue
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

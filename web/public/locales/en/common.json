@@ -1,0 +1,123 @@
+{
+  "app": {
+    "name": "Subcults",
+    "tagline": "Discover Underground Music Scenes"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "retry": "Retry"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "notFound": "Not found",
+    "unauthorized": "You need to be logged in to do that.",
+    "forbidden": "You don't have permission to do that."
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "minLength": "Must be at least {{count}} characters",
+    "maxLength": "Must be no more than {{count}} characters"
+  },
+  "language": {
+    "select": "Select language",
+    "en": "English",
+    "es": "Español"
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode",
+    "toggle": "Toggle theme"
+  },
+  "language": {
+    "select": "Select language",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "de": "Deutsch"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "discover": "Discover",
+    "map": "Map",
+    "scenes": "Scenes",
+    "events": "Events",
+    "account": "Account",
+    "settings": "Settings",
+    "admin": "Admin",
+    "featuredScenes": "Featured Scenes",
+    "noFeaturedScenes": "No featured scenes yet"
+  },
+  "search": {
+    "placeholder": "Search scenes, events, posts...",
+    "searching": "Searching...",
+    "suggestions": "Suggestions",
+    "noResults": "No results found for \"{{query}}\"",
+    "recentSearches": "Recent Searches",
+    "clearAll": "Clear all",
+    "clearSearch": "Clear search",
+    "sections": {
+      "scenes": "Scenes",
+      "events": "Events",
+      "posts": "Posts",
+      "genres": "Genres",
+      "artists": "Artists",
+      "hashtags": "Hashtags"
+    },
+    "results": {
+      "heading": "{{count}} results for \"{{query}}\"",
+      "noResultsHeading": "No results for \"{{query}}\"",
+      "noResultsHint": "Try different keywords or remove filters.",
+      "emptyQueryHeading": "Search Subcults",
+      "emptyQueryHint": "Find scenes, events, and posts.",
+      "searching": "Searching...",
+      "types": {
+        "all": "All",
+        "scenes": "Scenes",
+        "events": "Events",
+        "posts": "Posts"
+      },
+      "sort": {
+        "relevance": "Relevance",
+        "recent": "Most Recent",
+        "trending": "Trending"
+      },
+      "filters": {
+        "label": "Filters",
+        "type": "Type",
+        "sort": "Sort by"
+      },
+      "pagination": {
+        "label": "Pagination",
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page {{page}}"
+      }
+    }
+  },
+  "profile": {
+    "menu": "Profile menu",
+    "account": "Account",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dateTime": {
+    "invalidDate": "Invalid date"
+  },
+  "rtl": {
+    "enabled": false
+  }
+}

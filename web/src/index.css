@@ -1,0 +1,166 @@
+/**
+ * Neo-Brutalist Terminal Design System
+ * Space Mono / monospace typography (self-hosted via @fontsource/space-mono)
+ */
+@import '@fontsource/space-mono/400.css';
+@import '@fontsource/space-mono/700.css';
+
+/**
+ * Tailwind CSS Directives
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * CSS Variables - Neo-Brutalist Terminal Design System
+ * Primary: Terminal dark mode (pure dark backgrounds)
+ * Accents: Neon purple, green, magenta, cyan
+ */
+:root {
+  /* Terminal neutrals */
+  --color-background: #000000;
+  --color-background-secondary: #0d1117;
+  --color-background-hover: #1a1f2b;
+  --color-foreground: #ffffff;
+  --color-foreground-secondary: #e2e8f0;
+  --color-foreground-muted: #a0aec0;
+  --color-border: #1f1f1f;
+  --color-border-hover: #404040;
+
+  /* Neon accent colors */
+  --color-neon-green: #00ff41;
+  --color-neon-purple: #7c3aed;
+  --color-neon-purple-dark: #5b21b6;
+  --color-neon-magenta: #ff00ff;
+  --color-neon-cyan: #00ffff;
+
+  /* Status colors */
+  --color-status-error: #ff3333;
+  --color-status-success: #00ff41;
+  --color-status-warning: #ffb000;
+  --color-status-info: #00ffff;
+
+  /* Typography - Space Mono everywhere */
+  font-family: 'Space Mono', monospace;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Rendering optimizations */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/**
+ * Dark Mode Theme Variables (Same as :root in neo-brutalist)
+ * Dark mode is the primary theme
+ */
+.dark {
+  --color-background: #000000;
+  --color-background-secondary: #0d1117;
+  --color-background-hover: #1a1f2b;
+  --color-foreground: #ffffff;
+  --color-foreground-secondary: #e2e8f0;
+  --color-foreground-muted: #a0aec0;
+  --color-border: #1f1f1f;
+  --color-border-hover: #404040;
+
+  --color-neon-green: #00ff41;
+  --color-neon-purple: #7c3aed;
+  --color-neon-purple-dark: #5b21b6;
+  --color-neon-magenta: #ff00ff;
+  --color-neon-cyan: #00ffff;
+
+  color-scheme: dark;
+}
+
+/**
+ * Base Styles
+ */
+@layer base {
+  body {
+    @apply m-0 min-w-[320px] min-h-screen bg-background text-foreground;
+    /* Improve touch interaction on mobile */
+    -webkit-tap-highlight-color: rgba(100, 108, 255, 0.1);
+    touch-action: manipulation;
+  }
+
+  #root {
+    @apply w-full h-screen;
+  }
+
+  a {
+    @apply text-neon-cyan no-underline hover:text-neon-purple;
+    text-decoration: underline solid 1px;
+    transition: none; /* Instant feedback */
+  }
+
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight font-bold;
+    font-family: 'Space Mono', monospace;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl md:text-4xl leading-tight font-bold;
+    font-family: 'Space Mono', monospace;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl md:text-3xl leading-tight font-bold;
+    font-family: 'Space Mono', monospace;
+  }
+
+  button {
+    border-radius: 0px; /* Sharp corners */
+    @apply border border-neon-purple bg-neon-purple px-4 py-2.5 text-base font-bold
+           text-white cursor-pointer min-h-touch min-w-touch;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'Space Mono', monospace;
+    transition: none; /* Instant feedback */
+    touch-action: manipulation;
+  }
+
+  button:hover {
+    @apply bg-purple-700;
+    transition: none; /* Instant hover feedback */
+  }
+
+  button:active {
+    @apply bg-purple-900;
+  }
+
+  button:focus-visible {
+    @apply outline-2 outline-offset-2 outline-neon-purple;
+  }
+}
+
+/**
+ * Theme Transition Utility Class
+ * Apply to elements that need smooth color transitions when toggling dark mode
+ * Usage: className="theme-transition"
+ */
+@layer utilities {
+  .theme-transition {
+    transition-property: background-color, border-color, color;
+    transition-duration: 250ms;
+    transition-timing-function: ease-in-out;
+  }
+}
+
+/**
+ * Accessibility: Volume Slider Focus Styles
+ * Ensures keyboard users can see focus on range inputs
+ */
+.volume-slider {
+  /* Remove default outline on all focus */
+  outline: none;
+}
+
+.volume-slider:focus-visible {
+  /* Provide visible focus indicator for keyboard users */
+  outline: 2px solid var(--color-neon-purple);
+  outline-offset: 2px;
+}

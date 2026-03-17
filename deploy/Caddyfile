@@ -1,0 +1,33 @@
+# Caddyfile - Subcults reverse proxy configuration
+# =============================================================================
+# This configuration serves static assets and proxies API requests
+
+:80 {
+	# Health check endpoint for Caddy itself
+	handle /caddy-health {
+		respond "OK" 200
+	}
+
+	# Proxy API requests to the backend
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# Proxy health endpoint to API
+	handle /health {
+		reverse_proxy api:8080
+	}
+
+	# Serve static frontend assets
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Access logging
+	log {
+		output stdout
+		format console
+	}
+}

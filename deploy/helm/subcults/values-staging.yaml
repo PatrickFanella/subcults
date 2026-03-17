@@ -1,0 +1,18 @@
+# Staging environment overrides
+global:
+  environment: staging
+
+api:
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+
+frontend:
+  replicaCount: 1
+
+config:
+  corsAllowedOrigins: 'https://staging.subcults.subcult.tv'
+  tracingSampleRate: '0.5'
+  canaryEnabled: 'true'

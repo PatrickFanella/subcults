@@ -1,0 +1,140 @@
+# Environment variables are loaded from .env file in this directory
+# Copy .env.example to .env and fill in required values
+
+services:
+  # =============================================================================
+  # API - Go backend server
+  # Exposed to external Caddy via 'web' network, internal services via 'internal'
+  # =============================================================================
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile.api
+    container_name: subcults-api
+    expose:
+      - '8080'
+    environment:
+      - SUBCULT_ENV=${SUBCULT_ENV:-production}
+      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:-}
+      - JWT_SECRET_CURRENT=${JWT_SECRET_CURRENT:-}
+      - JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_ONBOARDING_RETURN_URL=${STRIPE_ONBOARDING_RETURN_URL}
+      - STRIPE_ONBOARDING_REFRESH_URL=${STRIPE_ONBOARDING_REFRESH_URL}
+      - STRIPE_APPLICATION_FEE_PERCENT=${STRIPE_APPLICATION_FEE_PERCENT:-5.0}
+      - MAPTILER_API_KEY=${MAPTILER_API_KEY}
+      - JETSTREAM_URL=${JETSTREAM_URL}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_MAX_UPLOAD_SIZE_MB=${R2_MAX_UPLOAD_SIZE_MB:-15}
+      - REDIS_URL=${REDIS_URL:-}
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN:-}
+      - RANK_TRUST_ENABLED=${RANK_TRUST_ENABLED:-false}
+      - TRACING_ENABLED=${TRACING_ENABLED:-false}
+      - TRACING_EXPORTER_TYPE=${TRACING_EXPORTER_TYPE:-otlp-http}
+      - TRACING_OTLP_ENDPOINT=${TRACING_OTLP_ENDPOINT:-}
+      - TRACING_SAMPLE_RATE=${TRACING_SAMPLE_RATE:-0.1}
+      - TRACING_INSECURE=${TRACING_INSECURE:-false}
+      - CANARY_ENABLED=${CANARY_ENABLED:-false}
+      - CANARY_TRAFFIC_PERCENT=${CANARY_TRAFFIC_PERCENT:-5.0}
+      - CANARY_ERROR_THRESHOLD=${CANARY_ERROR_THRESHOLD:-1.0}
+      - CANARY_LATENCY_THRESHOLD=${CANARY_LATENCY_THRESHOLD:-2.0}
+      - CANARY_AUTO_ROLLBACK=${CANARY_AUTO_ROLLBACK:-true}
+      - CANARY_MONITORING_WINDOW=${CANARY_MONITORING_WINDOW:-300}
+      - CANARY_VERSION=${CANARY_VERSION:-canary}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS:-GET,POST,PUT,PATCH,DELETE,OPTIONS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-Content-Type,Authorization,X-Request-ID}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-true}
+      - CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:8080/health/live',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - web
+      - internal
+    restart: unless-stopped
+
+  # =============================================================================
+  # Indexer - Jetstream consumer (internal network only)
+  # =============================================================================
+  indexer:
+    build:
+      context: ..
+      dockerfile: Dockerfile.indexer
+    container_name: subcults-indexer
+    environment:
+      - SUBCULT_ENV=${SUBCULT_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - JETSTREAM_URL=${JETSTREAM_URL}
+      - METRICS_PORT=${METRICS_PORT:-9090}
+      - INTERNAL_AUTH_TOKEN=${INTERNAL_AUTH_TOKEN:-}
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:9090/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # =============================================================================
+  # Frontend - Nginx serving built static assets
+  # Exposed to external Caddy via 'web' network
+  # =============================================================================
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
+      target: production
+      args:
+        - VITE_API_URL=${VITE_API_URL:-/api}
+        - VITE_MAPTILER_API_KEY=${VITE_MAPTILER_API_KEY:-}
+        - VITE_R2_CDN_URL=${VITE_R2_CDN_URL:-}
+        - VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY:-}
+        - VITE_LIVEKIT_WS_URL=${VITE_LIVEKIT_WS_URL:-}
+        - VITE_APP_VERSION=${VITE_APP_VERSION:-dev}
+    container_name: subcults-frontend
+    expose:
+      - '80'
+    networks:
+      - web
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  web:
+    external: true
+  internal:
+    driver: bridge
+    name: subcults-internal
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes: {}

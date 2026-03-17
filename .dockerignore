@@ -1,0 +1,88 @@
+# =============================================================================
+# Docker Build Context Ignore File
+# Excludes files not needed in the Docker build context
+# =============================================================================
+
+# Node.js dependencies (rebuilt in container)
+node_modules/
+.npm/
+.pnpm-store/
+
+# Build artifacts (rebuilt in container)
+bin/
+dist/
+coverage.out
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Vite cache
+.vite/
+
+# Git
+.git/
+.gitignore
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Environment files (secrets should be runtime injected)
+.env*
+!.env.example
+configs/*.env
+!configs/*.env.example
+
+# Documentation (not needed for runtime)
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.log
+*.pid
+
+# Test files
+*_test.go
+perf/
+e2e/
+
+# Development/deployment files not needed in build context
+examples/
+deploy/
+
+# Development tools
+Makefile
+.editorconfig
+.eslintrc.js
+.eslintcache
+.prettierrc
+
+# Docker files (prevent recursive inclusion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts (not needed in container)
+scripts/

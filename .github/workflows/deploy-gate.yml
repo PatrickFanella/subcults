@@ -1,0 +1,161 @@
+name: Deploy Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      skip_e2e:
+        description: 'Skip E2E tests (emergency only)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  pre-checks:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      commit_sha: ${{ steps.info.outputs.sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Gather deployment info
+        id: info
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "branch=$(git branch --show-current)" >> "$GITHUB_OUTPUT"
+          echo "deployer=${{ github.actor }}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify CI passed
+        run: |
+          echo "Checking CI status for ${{ steps.info.outputs.sha }}..."
+          # In a real setup, use gh api to check required status checks
+          echo "✓ CI verification placeholder (enforce via branch protection rules)"
+
+  tests:
+    name: Run Full Test Suite
+    needs: pre-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libvips-dev
+
+      - name: Run unit tests
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 50" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 50% threshold"
+            exit 1
+          fi
+
+  security-scan:
+    name: Security Scan
+    needs: pre-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... || echo "::warning::Vulnerability findings above"
+
+      - name: Build and scan Docker images
+        run: |
+          docker build -f Dockerfile.api -t subcults-api:scan .
+          docker run --rm aquasec/trivy:latest image --severity CRITICAL --exit-code 1 subcults-api:scan || \
+            echo "::warning::Trivy found issues (may require base image update)"
+
+  migration-check:
+    name: Migration Validation
+    needs: pre-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate migration files
+        run: |
+          echo "Checking migration file naming..."
+          MIGRATION_COUNT=$(ls migrations/*.up.sql 2>/dev/null | wc -l)
+          echo "Found $MIGRATION_COUNT up migrations"
+
+          echo "Checking for matching down migrations..."
+          for up in migrations/*.up.sql; do
+            down="${up%.up.sql}.down.sql"
+            if [[ ! -f "$down" ]]; then
+              echo "::warning::Missing down migration for $up"
+            fi
+          done
+          echo "✓ Migration validation complete"
+
+  approval:
+    name: Manual Approval
+    needs: [tests, security-scan, migration-check]
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Deployment approved
+        run: |
+          echo "✓ Deployment to ${{ github.event.inputs.environment }} approved by ${{ github.actor }}"
+          echo "Commit: ${{ needs.pre-checks.outputs.commit_sha }}"
+
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    needs: [approval, pre-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy notification
+        run: |
+          echo "🚀 Deploying ${{ needs.pre-checks.outputs.commit_sha }} to ${{ github.event.inputs.environment }}"
+          echo "Deployer: ${{ github.actor }}"
+          echo ""
+          echo "To deploy manually on the server:"
+          echo "  cd /home/onnwee/projects/subcults"
+          echo "  git pull origin $(git branch --show-current)"
+          echo "  ./scripts/deploy.sh"

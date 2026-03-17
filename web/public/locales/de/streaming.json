@@ -1,0 +1,51 @@
+{
+  "joinButton": {
+    "join": "Stream Beitreten",
+    "connecting": "Verbinden...",
+    "connected": "Verbunden"
+  },
+  "participantList": {
+    "empty": "Keine Teilnehmer im Raum",
+    "you": "Sie",
+    "speaking": "Spricht..."
+  },
+  "audioControls": {
+    "mute": "Mikrofon stummschalten",
+    "unmute": "Mikrofon aktivieren",
+    "volumeControl": "Lautstärkeregelung",
+    "volumeLabel": "Lautstärke",
+    "leave": "Verlassen",
+    "leaveRoom": "Raum verlassen"
+  },
+  "connectionIndicator": {
+    "quality": "Verbindungsqualität",
+    "excellent": "Ausgezeichnet",
+    "good": "Gut",
+    "poor": "Schlecht",
+    "unknown": "Unbekannt"
+  },
+  "streamPage": {
+    "invalidRoom": "Ungültiger Raum",
+    "noRoomId": "Keine Raum-ID angegeben",
+    "streamRoom": "Stream-Raum",
+    "room": "Raum",
+    "error": "Fehler",
+    "participants": "Teilnehmer"
+  },
+  "miniPlayer": {
+    "label": "Mini-Player",
+    "nowPlaying": "Wird Abgespielt",
+    "mute": "Stummschalten",
+    "unmute": "Ton aktivieren",
+    "volumeControl": "Lautstärkeregelung",
+    "volume": "Lautstärke",
+    "volumeSlider": "Lautstärkeregler",
+    "leave": "Verlassen",
+    "quality": {
+      "excellent": "Ausgezeichnete Verbindung",
+      "good": "Gute Verbindung",
+      "poor": "Schlechte Verbindung",
+      "unknown": "Unbekannte Verbindung"
+    }
+  }
+}

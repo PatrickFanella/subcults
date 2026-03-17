@@ -1,0 +1,177 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'lighthouserc.js'
+      - '.github/workflows/lighthouse.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'web/**'
+      - 'lighthouserc.js'
+
+jobs:
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+      
+      - name: Install root dependencies (for LHCI)
+        run: npm ci
+      
+      - name: Install frontend dependencies
+        run: |
+          cd web
+          npm ci
+      
+      - name: Build frontend
+        run: |
+          cd web
+          npm run build
+        env:
+          # Use production mode for accurate performance metrics
+          NODE_ENV: production
+      
+      - name: Run Lighthouse CI
+        run: |
+          # Start a simple HTTP server for testing
+          npx serve -l 9000 web/dist &
+          SERVER_PID=$!
+          
+          # Wait for server to be ready with health check
+          echo "Waiting for server to start..."
+          timeout 30 bash -c 'until curl -sf http://localhost:9000 > /dev/null; do sleep 0.5; done' || {
+            echo "Server failed to start"
+            kill $SERVER_PID 2>/dev/null || true
+            exit 1
+          }
+          echo "Server is ready"
+          
+          # Run Lighthouse CI
+          npx lhci autorun --config=lighthouserc.js || LHCI_EXIT_CODE=$?
+          
+          # Stop the server
+          kill $SERVER_PID 2>/dev/null || true
+          
+          # Exit with Lighthouse CI exit code
+          exit ${LHCI_EXIT_CODE:-0}
+      
+      - name: Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: .lighthouseci/
+          retention-days: 30
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find the latest manifest file
+            const lhciDir = '.lighthouseci';
+            if (!fs.existsSync(lhciDir)) {
+              console.log('No Lighthouse CI results found');
+              return;
+            }
+            
+            // Read manifest to find result files
+            const manifestPath = path.join(lhciDir, 'manifest.json');
+            if (!fs.existsSync(manifestPath)) {
+              console.log('No manifest.json found');
+              return;
+            }
+            
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            
+            if (!Array.isArray(manifest) || manifest.length === 0) {
+              console.log('No Lighthouse runs in manifest');
+              return;
+            }
+            
+            const run = manifest[0];
+            
+            // Get LHR (Lighthouse Result) from manifest
+            let lhr = run && run.lhr;
+            if (!lhr && run && run.lhrPath) {
+              const lhrPath = path.isAbsolute(run.lhrPath)
+                ? run.lhrPath
+                : path.join(lhciDir, run.lhrPath);
+              if (!fs.existsSync(lhrPath)) {
+                console.log(`Lighthouse result file not found at ${lhrPath}`);
+                return;
+              }
+              lhr = JSON.parse(fs.readFileSync(lhrPath, 'utf8'));
+            }
+            
+            if (!lhr || !lhr.categories) {
+              console.log('No category data available in Lighthouse results');
+              return;
+            }
+            
+            // Create comment body
+            const categories = lhr.categories;
+            const metrics = {
+              'Performance': categories.performance?.score,
+              'Accessibility': categories.accessibility?.score,
+              'Best Practices': categories['best-practices']?.score,
+              'SEO': categories.seo?.score,
+            };
+            
+            // Filter out any undefined scores
+            const definedMetrics = Object.fromEntries(
+              Object.entries(metrics).filter(([, score]) => typeof score === 'number')
+            );
+            
+            if (Object.keys(definedMetrics).length === 0) {
+              console.log('No valid metric scores available');
+              return;
+            }
+            
+            let comment = '## 🔦 Lighthouse Performance Report\n\n';
+            comment += '### Scores\n\n';
+            comment += '| Category | Score |\n';
+            comment += '|----------|-------|\n';
+            
+            for (const [category, score] of Object.entries(definedMetrics)) {
+              const emoji = score >= 0.9 ? '✅' : score >= 0.5 ? '⚠️' : '❌';
+              const percentage = Math.round(score * 100);
+              comment += `| ${emoji} ${category} | ${percentage}% |\n`;
+            }
+            
+            comment += '\n### Performance Budgets\n\n';
+            comment += 'See the full report in the Lighthouse CI artifacts.\n\n';
+            comment += `[View detailed results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n`;
+            
+            // Post comment
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            } catch (error) {
+              console.error('Failed to post comment:', error);
+            }

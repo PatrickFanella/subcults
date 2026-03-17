@@ -1,0 +1,79 @@
+{
+  "joinButton": {
+    "join": "Join Stream",
+    "connecting": "Connecting...",
+    "connected": "Connected"
+  },
+  "participantList": {
+    "empty": "No participants in the room",
+    "you": "You",
+    "speaking": "Speaking..."
+  },
+  "audioControls": {
+    "mute": "Mute microphone",
+    "unmute": "Unmute microphone",
+    "volumeControl": "Volume control",
+    "volumeLabel": "Volume",
+    "leave": "Leave",
+    "leaveRoom": "Leave room"
+  },
+  "connectionIndicator": {
+    "quality": "Connection quality",
+    "excellent": "Excellent",
+    "good": "Good",
+    "poor": "Poor",
+    "unknown": "Unknown"
+  },
+  "streamHeader": {
+    "live": "LIVE",
+    "organizer": "Organizer",
+    "listeners": "{{count}} listener",
+    "listeners_other": "{{count}} listeners"
+  },
+  "audioLevel": {
+    "muted": "Muted",
+    "speaking": "Speaking",
+    "silent": "Silent"
+  },
+  "shareButtons": {
+    "share": "Share",
+    "shareText": "Check out {{title}}!",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "invite": "Invite",
+    "shareOptions": "Share options"
+  },
+  "chat": {
+    "sidebar": "Chat sidebar",
+    "title": "Chat",
+    "noMessages": "No messages yet",
+    "you": "You",
+    "placeholder": "Type a message...",
+    "messageInput": "Message input",
+    "send": "Send"
+  },
+  "streamPage": {
+    "invalidRoom": "Invalid Room",
+    "noRoomId": "No room ID provided",
+    "streamRoom": "Stream Room",
+    "room": "Room",
+    "error": "Error",
+    "participants": "Participants"
+  },
+  "miniPlayer": {
+    "label": "Mini player",
+    "nowPlaying": "Now Playing",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "volumeControl": "Volume control",
+    "volume": "Volume",
+    "volumeSlider": "Volume slider",
+    "leave": "Leave",
+    "quality": {
+      "excellent": "Excellent connection",
+      "good": "Good connection",
+      "poor": "Poor connection",
+      "unknown": "Unknown connection"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "weights": {
+    "scene": {
+      "text_match": 0.4,
+      "proximity": 0.3,
+      "trust": 0.1
+    },
+    "event": {
+      "recency": 0.3,
+      "text_match": 0.4,
+      "proximity": 0.2,
+      "trust": 0.1
+    }
+  }
+}

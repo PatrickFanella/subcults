@@ -1,0 +1,51 @@
+{
+  "joinButton": {
+    "join": "Unirse a la Transmisión",
+    "connecting": "Conectando...",
+    "connected": "Conectado"
+  },
+  "participantList": {
+    "empty": "No hay participantes en la sala",
+    "you": "Tú",
+    "speaking": "Hablando..."
+  },
+  "audioControls": {
+    "mute": "Silenciar micrófono",
+    "unmute": "Activar micrófono",
+    "volumeControl": "Control de volumen",
+    "volumeLabel": "Volumen",
+    "leave": "Salir",
+    "leaveRoom": "Salir de la sala"
+  },
+  "connectionIndicator": {
+    "quality": "Calidad de la conexión",
+    "excellent": "Excelente",
+    "good": "Buena",
+    "poor": "Mala",
+    "unknown": "Desconocida"
+  },
+  "streamPage": {
+    "invalidRoom": "Sala Inválida",
+    "noRoomId": "No se proporcionó ID de sala",
+    "streamRoom": "Sala de Transmisión",
+    "room": "Sala",
+    "error": "Error",
+    "participants": "Participantes"
+  },
+  "miniPlayer": {
+    "label": "Reproductor mini",
+    "nowPlaying": "Reproduciendo Ahora",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "volumeControl": "Control de volumen",
+    "volume": "Volumen",
+    "volumeSlider": "Control deslizante de volumen",
+    "leave": "Salir",
+    "quality": {
+      "excellent": "Conexión excelente",
+      "good": "Conexión buena",
+      "poor": "Conexión mala",
+      "unknown": "Conexión desconocida"
+    }
+  }
+}

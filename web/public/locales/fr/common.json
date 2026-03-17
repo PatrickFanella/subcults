@@ -1,0 +1,118 @@
+{
+  "app": {
+    "name": "Subcults",
+    "tagline": "Découvrez les Scènes Musicales Underground"
+  },
+  "actions": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "clear": "Effacer",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "retry": "Réessayer"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "notFound": "Non trouvé",
+    "unauthorized": "Vous devez être connecté pour faire cela.",
+    "forbidden": "Vous n'avez pas la permission de faire cela."
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "email": "Veuillez entrer une adresse e-mail valide",
+    "minLength": "Doit comporter au moins {{count}} caractères",
+    "maxLength": "Ne doit pas dépasser {{count}} caractères"
+  },
+  "theme": {
+    "light": "Mode clair",
+    "dark": "Mode sombre",
+    "toggle": "Basculer le thème"
+  },
+  "language": {
+    "select": "Sélectionner la langue",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "de": "Deutsch"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "discover": "Découvrir",
+    "map": "Carte",
+    "scenes": "Scènes",
+    "events": "Événements",
+    "account": "Compte",
+    "settings": "Paramètres",
+    "admin": "Administrateur",
+    "featuredScenes": "Scènes en Vedette",
+    "noFeaturedScenes": "Aucune scène en vedette pour le moment"
+  },
+  "search": {
+    "placeholder": "Rechercher des scènes, événements, publications...",
+    "searching": "Recherche en cours...",
+    "suggestions": "Suggestions",
+    "noResults": "Aucun résultat trouvé pour \"{{query}}\"",
+    "recentSearches": "Recherches Récentes",
+    "clearAll": "Tout effacer",
+    "clearSearch": "Effacer la recherche",
+    "sections": {
+      "scenes": "Scènes",
+      "events": "Événements",
+      "posts": "Publications",
+      "genres": "Genres",
+      "artists": "Artistes",
+      "hashtags": "Hashtags"
+    },
+    "results": {
+      "heading": "{{count}} résultats pour \"{{query}}\"",
+      "noResultsHeading": "Aucun résultat pour \"{{query}}\"",
+      "noResultsHint": "Essayez d'autres mots-clés ou supprimez les filtres.",
+      "emptyQueryHeading": "Rechercher dans Subcults",
+      "emptyQueryHint": "Trouvez des scènes, événements et publications.",
+      "searching": "Recherche en cours...",
+      "types": {
+        "all": "Tous",
+        "scenes": "Scènes",
+        "events": "Événements",
+        "posts": "Publications"
+      },
+      "sort": {
+        "relevance": "Pertinence",
+        "recent": "Plus récent",
+        "trending": "Tendances"
+      },
+      "filters": {
+        "label": "Filtres",
+        "type": "Type",
+        "sort": "Trier par"
+      },
+      "pagination": {
+        "label": "Pagination",
+        "previous": "Précédent",
+        "next": "Suivant",
+        "page": "Page {{page}}"
+      }
+    }
+  },
+  "profile": {
+    "menu": "Menu du profil",
+    "account": "Compte",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "dateTime": {
+    "invalidDate": "Date invalide"
+  },
+  "rtl": {
+    "enabled": false
+  }
+}

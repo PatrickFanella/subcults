@@ -1,0 +1,42 @@
+{
+  "title": "Scenes",
+  "detail": {
+    "title": "Scene Details",
+    "description": "Description",
+    "location": "Location",
+    "organizers": "Organizers",
+    "members": "Members",
+    "events": "Events"
+  },
+  "create": {
+    "title": "Create New Scene",
+    "name": "Scene Name",
+    "description": "Description",
+    "location": "Location",
+    "privacy": "Privacy Settings",
+    "allowPrecise": "Allow precise location",
+    "allowPreciseHelp": "Share exact location with trusted users",
+    "success": "Scene created successfully",
+    "error": "Failed to create scene"
+  },
+  "edit": {
+    "title": "Edit Scene",
+    "success": "Scene updated successfully",
+    "error": "Failed to update scene"
+  },
+  "delete": {
+    "confirm": "Are you sure you want to delete this scene?",
+    "success": "Scene deleted successfully",
+    "error": "Failed to delete scene"
+  },
+  "list": {
+    "empty": "No scenes found",
+    "nearby": "Nearby Scenes",
+    "all": "All Scenes"
+  },
+  "search": {
+    "placeholder": "Search scenes...",
+    "results": "{{count}} scenes found",
+    "noResults": "No scenes match your search"
+  }
+}

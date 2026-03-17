@@ -1,0 +1,118 @@
+{
+  "app": {
+    "name": "Subcults",
+    "tagline": "Entdecken Sie Underground-Musikszenen"
+  },
+  "actions": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "submit": "Absenden",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "clear": "Löschen",
+    "confirm": "Bestätigen",
+    "loading": "Wird geladen...",
+    "retry": "Erneut versuchen"
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "notFound": "Nicht gefunden",
+    "unauthorized": "Sie müssen angemeldet sein, um dies zu tun.",
+    "forbidden": "Sie haben keine Berechtigung, dies zu tun."
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich",
+    "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    "minLength": "Muss mindestens {{count}} Zeichen lang sein",
+    "maxLength": "Darf nicht mehr als {{count}} Zeichen haben"
+  },
+  "theme": {
+    "light": "Heller Modus",
+    "dark": "Dunkler Modus",
+    "toggle": "Design wechseln"
+  },
+  "language": {
+    "select": "Sprache auswählen",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "de": "Deutsch"
+  },
+  "navigation": {
+    "menu": "Menü",
+    "discover": "Entdecken",
+    "map": "Karte",
+    "scenes": "Szenen",
+    "events": "Veranstaltungen",
+    "account": "Konto",
+    "settings": "Einstellungen",
+    "admin": "Administrator",
+    "featuredScenes": "Empfohlene Szenen",
+    "noFeaturedScenes": "Noch keine empfohlenen Szenen"
+  },
+  "search": {
+    "placeholder": "Szenen, Veranstaltungen, Beiträge suchen...",
+    "searching": "Suche läuft...",
+    "suggestions": "Vorschläge",
+    "noResults": "Keine Ergebnisse für \"{{query}}\" gefunden",
+    "recentSearches": "Letzte Suchanfragen",
+    "clearAll": "Alle löschen",
+    "clearSearch": "Suche löschen",
+    "sections": {
+      "scenes": "Szenen",
+      "events": "Veranstaltungen",
+      "posts": "Beiträge",
+      "genres": "Genres",
+      "artists": "Künstler",
+      "hashtags": "Hashtags"
+    },
+    "results": {
+      "heading": "{{count}} Ergebnisse für \"{{query}}\"",
+      "noResultsHeading": "Keine Ergebnisse für \"{{query}}\"",
+      "noResultsHint": "Versuchen Sie andere Schlüsselwörter oder entfernen Sie Filter.",
+      "emptyQueryHeading": "Subcults durchsuchen",
+      "emptyQueryHint": "Finden Sie Szenen, Veranstaltungen und Beiträge.",
+      "searching": "Suche läuft...",
+      "types": {
+        "all": "Alle",
+        "scenes": "Szenen",
+        "events": "Veranstaltungen",
+        "posts": "Beiträge"
+      },
+      "sort": {
+        "relevance": "Relevanz",
+        "recent": "Neueste",
+        "trending": "Trending"
+      },
+      "filters": {
+        "label": "Filter",
+        "type": "Typ",
+        "sort": "Sortieren nach"
+      },
+      "pagination": {
+        "label": "Seitennavigation",
+        "previous": "Zurück",
+        "next": "Weiter",
+        "page": "Seite {{page}}"
+      }
+    }
+  },
+  "profile": {
+    "menu": "Profilmenü",
+    "account": "Konto",
+    "settings": "Einstellungen",
+    "logout": "Abmelden"
+  },
+  "dateTime": {
+    "invalidDate": "Ungültiges Datum"
+  },
+  "rtl": {
+    "enabled": false
+  }
+}

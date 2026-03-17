@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: subcults-postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: subcults
+      POSTGRES_DB: subcults
+    ports:
+      - '127.0.0.1:5439:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U subcults']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # API server - currently skeleton, will be built when handlers are implemented
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.api
+  #   container_name: subcults-api
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - DATABASE_URL=postgres://subcults:${POSTGRES_PASSWORD}@postgres:5432/subcults?sslmode=disable
+  #     - PORT=8080
+  #     - GO_ENV=development
+  #   env_file:
+  #     - ./configs/dev.env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./:/app
+  #   command: /app/api
+
+volumes:
+  postgres_data:

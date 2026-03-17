@@ -1,0 +1,59 @@
+name: Accessibility Tests
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/accessibility.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'web/**'
+
+jobs:
+  accessibility:
+    name: Run Accessibility Tests
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run accessibility tests
+        run: npm test -- --run src/pages/*.a11y.test.tsx src/test/*.a11y.test.tsx
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-test-results
+          path: web/coverage/
+          retention-days: 7
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Accessibility tests failed. Please check the test results for details.'
+            })

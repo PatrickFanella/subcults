@@ -1,0 +1,51 @@
+{
+  "title": "Événements",
+  "detail": {
+    "title": "Détails de l'Événement",
+    "description": "Description",
+    "date": "Date et Heure",
+    "location": "Emplacement",
+    "scene": "Scène",
+    "attendees": "Participants",
+    "rsvp": "Confirmer la Présence"
+  },
+  "create": {
+    "title": "Créer un Nouvel Événement",
+    "name": "Nom de l'Événement",
+    "description": "Description",
+    "date": "Date",
+    "time": "Heure",
+    "location": "Emplacement",
+    "scene": "Scène Associée",
+    "success": "Événement créé avec succès",
+    "error": "Échec de la création de l'événement"
+  },
+  "edit": {
+    "title": "Modifier l'Événement",
+    "success": "Événement mis à jour avec succès",
+    "error": "Échec de la mise à jour de l'événement"
+  },
+  "delete": {
+    "confirm": "Êtes-vous sûr de vouloir supprimer cet événement ?",
+    "success": "Événement supprimé avec succès",
+    "error": "Échec de la suppression de l'événement"
+  },
+  "list": {
+    "empty": "Aucun événement trouvé",
+    "upcoming": "Événements à Venir",
+    "past": "Événements Passés",
+    "all": "Tous les Événements"
+  },
+  "search": {
+    "placeholder": "Rechercher des événements...",
+    "results": "{{count}} événements trouvés",
+    "noResults": "Aucun événement ne correspond à votre recherche"
+  },
+  "rsvp": {
+    "going": "J'y vais",
+    "notGoing": "Je n'y vais pas",
+    "maybe": "Peut-être",
+    "success": "Confirmation mise à jour",
+    "error": "Échec de la mise à jour de la confirmation"
+  }
+}

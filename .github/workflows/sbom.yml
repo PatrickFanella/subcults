@@ -1,0 +1,138 @@
+name: SBOM Generation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - 'web/package.json'
+      - 'web/package-lock.json'
+      - 'e2e/package.json'
+      - 'e2e/package-lock.json'
+      - 'Dockerfile.*'
+  schedule:
+    # Run weekly on Mondays at 9:00 AM UTC (aligned with dependency scans)
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom-go:
+    name: Generate Go SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install cyclonedx-gomod
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
+      - name: Generate Go SBOM (CycloneDX JSON)
+        run: |
+          cyclonedx-gomod app \
+            -licenses \
+            -json \
+            -output sbom-go.cdx.json \
+            .
+
+      - name: Generate Go SBOM (CycloneDX XML)
+        run: |
+          cyclonedx-gomod app \
+            -licenses \
+            -output sbom-go.cdx.xml \
+            .
+
+      - name: Upload Go SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-go
+          path: |
+            sbom-go.cdx.json
+            sbom-go.cdx.xml
+          retention-days: 90
+
+  sbom-npm-web:
+    name: Generate NPM SBOM - web (CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Generate NPM SBOM (CycloneDX JSON)
+        working-directory: ./web
+        run: |
+          npx @cyclonedx/cyclonedx-npm \
+            --output-format JSON \
+            --output-file ../sbom-npm-web.cdx.json \
+            --package-lock-only
+
+      - name: Upload NPM web SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-npm-web
+          path: sbom-npm-web.cdx.json
+          retention-days: 90
+
+  sbom-npm-e2e:
+    name: Generate NPM SBOM - e2e (CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      - name: Generate NPM SBOM (CycloneDX JSON)
+        working-directory: ./e2e
+        run: |
+          npx @cyclonedx/cyclonedx-npm \
+            --output-format JSON \
+            --output-file ../sbom-npm-e2e.cdx.json \
+            --package-lock-only
+
+      - name: Upload NPM e2e SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-npm-e2e
+          path: sbom-npm-e2e.cdx.json
+          retention-days: 90

@@ -1,0 +1,427 @@
+name: Dependency Vulnerability Scanning
+
+on:
+  pull_request:
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - 'web/package.json'
+      - 'web/package-lock.json'
+      - 'e2e/package.json'
+      - 'e2e/package-lock.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'Dockerfile.*'
+      - '.github/workflows/dependency-scan.yml'
+  push:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Run weekly on Mondays at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  govulncheck:
+    name: Go Vulnerability Scan (govulncheck)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Run govulncheck
+        id: govulncheck
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+          # Run govulncheck and capture exit code
+          SCAN_EXIT_CODE=0
+          govulncheck -json ./... > govulncheck-results.json 2>govulncheck-errors.txt || SCAN_EXIT_CODE=$?
+
+          # Expose exit code and scan completion status
+          echo "exit_code=$SCAN_EXIT_CODE" >> "$GITHUB_OUTPUT"
+          # govulncheck exits with 3 when vulnerabilities are found, 0 when clean
+          if [ "$SCAN_EXIT_CODE" -eq 0 ] || [ "$SCAN_EXIT_CODE" -eq 3 ]; then
+            echo "scan_completed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "scan_completed=false" >> "$GITHUB_OUTPUT"
+            echo "❌ govulncheck failed with exit code $SCAN_EXIT_CODE"
+            if [ -s govulncheck-errors.txt ]; then
+              echo "Error output:"
+              cat govulncheck-errors.txt
+            fi
+          fi
+
+      - name: Parse govulncheck results
+        id: parse
+        if: steps.govulncheck.outputs.scan_completed == 'true'
+        run: |
+          # Parse JSON output to determine severity
+          if [ -f govulncheck-results.json ]; then
+            # Check if any vulnerabilities were found using jq for reliable JSON parsing
+            VULN_COUNT=$(jq -s '[.. | objects | .osv? | select(. != null)] | length' govulncheck-results.json 2>/dev/null || echo "0")
+            echo "vuln_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+
+            # Generate human-readable summary
+            if [ "$VULN_COUNT" -gt 0 ]; then
+              echo "## Go Vulnerability Scan Results" > scan-summary.md
+              echo "" >> scan-summary.md
+              echo "Found $VULN_COUNT vulnerability/vulnerabilities" >> scan-summary.md
+              echo "" >> scan-summary.md
+              echo "### Details:" >> scan-summary.md
+              govulncheck ./... 2>&1 | tee -a scan-summary.md || true
+            else
+              echo "## Go Vulnerability Scan Results" > scan-summary.md
+              echo "" >> scan-summary.md
+              echo "✅ No vulnerabilities found" >> scan-summary.md
+            fi
+          fi
+
+      - name: Report scan failure
+        if: steps.govulncheck.outputs.scan_completed == 'false'
+        run: |
+          echo "❌ govulncheck scan failed to complete"
+          echo "This may indicate a tool error, not a vulnerability"
+          exit 1
+
+      - name: Upload govulncheck results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: govulncheck-results
+          path: |
+            govulncheck-results.json
+            scan-summary.md
+          retention-days: 30
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && steps.parse.outputs.vuln_count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '⚠️ Go vulnerability scan found issues. Check the logs for details.';
+            if (fs.existsSync('scan-summary.md')) {
+              summary = fs.readFileSync('scan-summary.md', 'utf8');
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Fail on critical vulnerabilities
+        if: steps.parse.outputs.vuln_count != '0'
+        run: |
+          echo "❌ Vulnerabilities detected in Go dependencies"
+          echo "Review the scan results and update dependencies"
+          exit 1
+
+  npm-audit:
+    name: NPM Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    strategy:
+      matrix:
+        directory: ['web', 'e2e']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./${{ matrix.directory }}
+        run: npm ci
+
+      - name: Run npm audit
+        id: npm_audit
+        continue-on-error: true
+        working-directory: ./${{ matrix.directory }}
+        run: |
+          set -euo pipefail
+          
+          # Run npm audit and capture exit code
+          AUDIT_EXIT_CODE=0
+          npm audit --json > npm-audit-results.json 2>npm-audit-errors.txt || AUDIT_EXIT_CODE=$?
+          npm audit > npm-audit-human.txt 2>&1 || true
+          
+          # Expose exit code and audit completion status
+          echo "exit_code=$AUDIT_EXIT_CODE" >> "$GITHUB_OUTPUT"
+          # npm audit exits with non-zero when vulnerabilities are found
+          # We consider it completed unless there's a real error (malformed JSON, network issues)
+          if [ -f npm-audit-results.json ] && jq empty npm-audit-results.json 2>/dev/null; then
+            echo "audit_completed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "audit_completed=false" >> "$GITHUB_OUTPUT"
+            echo "❌ npm audit failed or produced invalid JSON"
+            if [ -s npm-audit-errors.txt ]; then
+              echo "Error output:"
+              cat npm-audit-errors.txt
+            fi
+          fi
+
+      - name: Parse npm audit results
+        id: parse
+        if: steps.npm_audit.outputs.audit_completed == 'true'
+        working-directory: ./${{ matrix.directory }}
+        run: |
+          if [ -f npm-audit-results.json ]; then
+            # Extract vulnerability counts by severity with validation
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' npm-audit-results.json 2>/dev/null || echo "0")
+            HIGH=$(jq '.metadata.vulnerabilities.high // 0' npm-audit-results.json 2>/dev/null || echo "0")
+            MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' npm-audit-results.json 2>/dev/null || echo "0")
+            LOW=$(jq '.metadata.vulnerabilities.low // 0' npm-audit-results.json 2>/dev/null || echo "0")
+            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' npm-audit-results.json 2>/dev/null || echo "0")
+
+            echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high=$HIGH" >> $GITHUB_OUTPUT
+            echo "moderate=$MODERATE" >> $GITHUB_OUTPUT
+            echo "low=$LOW" >> $GITHUB_OUTPUT
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+            # Generate summary
+            echo "## NPM Vulnerability Scan Results - ${{ matrix.directory }}" > scan-summary.md
+            echo "" >> scan-summary.md
+            echo "| Severity | Count |" >> scan-summary.md
+            echo "|----------|-------|" >> scan-summary.md
+            echo "| Critical | $CRITICAL |" >> scan-summary.md
+            echo "| High | $HIGH |" >> scan-summary.md
+            echo "| Moderate | $MODERATE |" >> scan-summary.md
+            echo "| Low | $LOW |" >> scan-summary.md
+            echo "| **Total** | **$TOTAL** |" >> scan-summary.md
+            echo "" >> scan-summary.md
+
+            if [ "$TOTAL" -gt 0 ]; then
+              echo "<details>" >> scan-summary.md
+              echo "<summary>Click to see details</summary>" >> scan-summary.md
+              echo "" >> scan-summary.md
+              echo '```' >> scan-summary.md
+              cat npm-audit-human.txt >> scan-summary.md
+              echo '```' >> scan-summary.md
+              echo "</details>" >> scan-summary.md
+            fi
+          fi
+
+      - name: Upload npm audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-results-${{ matrix.directory }}
+          path: |
+            ${{ matrix.directory }}/npm-audit-results.json
+            ${{ matrix.directory }}/npm-audit-human.txt
+            ${{ matrix.directory }}/scan-summary.md
+          retention-days: 30
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && steps.parse.outputs.total != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const summaryPath = path.join('${{ matrix.directory }}', 'scan-summary.md');
+
+            let summary = '⚠️ NPM vulnerability scan found issues in ${{ matrix.directory }}';
+            if (fs.existsSync(summaryPath)) {
+              summary = fs.readFileSync(summaryPath, 'utf8');
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Report audit failure
+        if: steps.npm_audit.outputs.audit_completed == 'false'
+        run: |
+          echo "❌ npm audit scan failed to complete in ${{ matrix.directory }}"
+          echo "This may indicate a tool error, network issue, or malformed package files"
+          exit 1
+
+      - name: Warn on high vulnerabilities
+        if: steps.parse.outputs.high != '0'
+        run: |
+          echo "⚠️ HIGH severity vulnerabilities detected in ${{ matrix.directory }}"
+          echo "Found ${{ steps.parse.outputs.high }} high severity vulnerabilities"
+          echo "Consider updating dependencies"
+
+      - name: Check for critical vulnerabilities
+        if: steps.parse.outputs.critical != '0'
+        run: |
+          echo "❌ CRITICAL vulnerabilities detected in ${{ matrix.directory }}"
+          echo "Found ${{ steps.parse.outputs.critical }} critical vulnerabilities"
+          exit 1
+
+  docker-scan:
+    name: Docker Image Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+
+    strategy:
+      matrix:
+        dockerfile: ['Dockerfile.api', 'Dockerfile.frontend', 'Dockerfile.indexer']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        id: build
+        run: |
+          IMAGE_NAME="${{ matrix.dockerfile }}"
+          IMAGE_NAME="${IMAGE_NAME#Dockerfile.}"
+          docker build -f ${{ matrix.dockerfile }} -t "subcults-${IMAGE_NAME}:scan" .
+          echo "image_name=subcults-${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ steps.build.outputs.image_name }}:scan'
+          format: 'json'
+          output: 'trivy-results.json'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+
+      - name: Run Trivy for human-readable output
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ steps.build.outputs.image_name }}:scan'
+          format: 'table'
+          output: 'trivy-results.txt'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+
+      - name: Run Trivy for SARIF output
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ steps.build.outputs.image_name }}:scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+
+      - name: Parse Trivy results
+        id: parse
+        run: |
+          if [ -f trivy-results.json ]; then
+            # Count vulnerabilities by severity
+            CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-results.json)
+            HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-results.json)
+            MEDIUM=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length' trivy-results.json)
+            LOW=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="LOW")] | length' trivy-results.json)
+            TOTAL=$((CRITICAL + HIGH + MEDIUM + LOW))
+
+            echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high=$HIGH" >> $GITHUB_OUTPUT
+            echo "medium=$MEDIUM" >> $GITHUB_OUTPUT
+            echo "low=$LOW" >> $GITHUB_OUTPUT
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+            # Generate summary
+            echo "## Docker Image Scan Results - ${{ matrix.dockerfile }}" > scan-summary.md
+            echo "" >> scan-summary.md
+            echo "Image: \`${{ steps.build.outputs.image_name }}:scan\`" >> scan-summary.md
+            echo "" >> scan-summary.md
+            echo "| Severity | Count |" >> scan-summary.md
+            echo "|----------|-------|" >> scan-summary.md
+            echo "| Critical | $CRITICAL |" >> scan-summary.md
+            echo "| High | $HIGH |" >> scan-summary.md
+            echo "| Medium | $MEDIUM |" >> scan-summary.md
+            echo "| Low | $LOW |" >> scan-summary.md
+            echo "| **Total** | **$TOTAL** |" >> scan-summary.md
+            echo "" >> scan-summary.md
+
+            if [ "$TOTAL" -gt 0 ]; then
+              echo "<details>" >> scan-summary.md
+              echo "<summary>Click to see details</summary>" >> scan-summary.md
+              echo "" >> scan-summary.md
+              echo '```' >> scan-summary.md
+              cat trivy-results.txt >> scan-summary.md
+              echo '```' >> scan-summary.md
+              echo "</details>" >> scan-summary.md
+            fi
+          fi
+
+      - name: Upload Trivy results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results-${{ matrix.dockerfile }}
+          path: |
+            trivy-results.json
+            trivy-results.txt
+            trivy-results.sarif
+            scan-summary.md
+          retention-days: 30
+
+      - name: Upload to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-${{ matrix.dockerfile }}'
+        continue-on-error: true
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && steps.parse.outputs.total != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '⚠️ Docker image scan found issues in ${{ matrix.dockerfile }}';
+            if (fs.existsSync('scan-summary.md')) {
+              summary = fs.readFileSync('scan-summary.md', 'utf8');
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Warn on high vulnerabilities
+        if: steps.parse.outputs.high != '0'
+        run: |
+          echo "⚠️ HIGH severity vulnerabilities detected in ${{ matrix.dockerfile }}"
+          echo "Found ${{ steps.parse.outputs.high }} high severity vulnerabilities"
+          echo "Consider updating base images or dependencies"
+
+      - name: Check for critical vulnerabilities
+        if: steps.parse.outputs.critical != '0'
+        run: |
+          echo "❌ CRITICAL vulnerabilities detected in ${{ matrix.dockerfile }}"
+          echo "Found ${{ steps.parse.outputs.critical }} critical vulnerabilities"
+          exit 1

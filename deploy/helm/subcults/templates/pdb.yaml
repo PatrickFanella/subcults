@@ -1,0 +1,29 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- if .Values.api.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "subcults.fullname" . }}-api
+  labels:
+    {{- include "subcults.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.api.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "subcults.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+---
+{{- end }}
+{{- if .Values.frontend.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "subcults.fullname" . }}-frontend
+  labels:
+    {{- include "subcults.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.frontend.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "subcults.selectorLabels" (dict "root" . "component" "frontend") | nindent 6 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,21 @@
+# Production environment overrides
+global:
+  environment: production
+
+api:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+
+frontend:
+  replicaCount: 2
+
+config:
+  corsAllowedOrigins: 'https://subcults.subcult.tv'
+  tracingSampleRate: '0.1'
+  rankTrustEnabled: 'false'
+
+migration:
+  enabled: true

@@ -1,0 +1,49 @@
+{{- if .Values.indexer.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "subcults.fullname" . }}-indexer
+  labels:
+    {{- include "subcults.labels" . | nindent 4 }}
+    {{- include "subcults.selectorLabels" (dict "root" . "component" "indexer") | nindent 4 }}
+spec:
+  serviceName: {{ include "subcults.fullname" . }}-indexer
+  replicas: {{ .Values.indexer.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "subcults.selectorLabels" (dict "root" . "component" "indexer") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "subcults.labels" . | nindent 8 }}
+        {{- include "subcults.selectorLabels" (dict "root" . "component" "indexer") | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: indexer
+          image: {{ include "subcults.image" (dict "root" . "image" .Values.indexer.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.indexer.service.targetPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "subcults.fullname" . }}-config
+            - secretRef:
+                name: {{ .Values.secrets.existingSecret }}
+          livenessProbe:
+            httpGet:
+              path: /internal/indexer/metrics
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /internal/indexer/metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.indexer.resources | nindent 12 }}
+{{- end }}

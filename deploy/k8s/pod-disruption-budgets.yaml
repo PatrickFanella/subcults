@@ -1,0 +1,29 @@
+# Ensure at least 1 API pod is always available during voluntary disruptions
+# (node drains, cluster upgrades, etc.)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: subcults-api
+  namespace: subcults
+  labels:
+    app.kubernetes.io/name: subcults-api
+    app.kubernetes.io/part-of: subcults
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: subcults-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: subcults-frontend
+  namespace: subcults
+  labels:
+    app.kubernetes.io/name: subcults-frontend
+    app.kubernetes.io/part-of: subcults
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: subcults-frontend

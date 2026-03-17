@@ -1,0 +1,64 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  precision: 2
+  round: down
+  range: '60...90'
+
+  status:
+    project:
+      backend:
+        target: 80%
+        flags:
+          - backend
+      frontend:
+        target: 70%
+        flags:
+          - frontend
+      # Critical packages must maintain 95% coverage
+      auth:
+        target: 95%
+        paths:
+          - 'internal/auth/**'
+        flags:
+          - backend
+      geo:
+        target: 95%
+        paths:
+          - 'internal/geo/**'
+        flags:
+          - backend
+      payment:
+        target: 95%
+        paths:
+          - 'internal/payment/**'
+        flags:
+          - backend
+    patch:
+      default:
+        target: 70%
+
+flags:
+  backend:
+    paths:
+      - 'internal/**'
+      - 'cmd/**'
+      - 'pkg/**'
+    carryforward: true
+  frontend:
+    paths:
+      - 'web/src/**'
+    carryforward: true
+
+ignore:
+  - '**/*_test.go'
+  - '**/testutil/**'
+  - '**/testdata/**'
+  - 'web/src/test/**'
+  - 'migrations/**'
+  - 'scripts/**'
+  - 'perf/**'
+  - 'e2e/**'
+  - 'docs/**'
+  - 'examples/**'

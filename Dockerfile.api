@@ -1,0 +1,74 @@
+# syntax=docker/dockerfile:1
+
+# =============================================================================
+# API Dockerfile - Multi-stage production build for the Subcults API server
+# Note: bimg requires CGO + libvips, so we use alpine runtime instead of distroless
+# Target: <20MB image, nonroot, zero CVEs
+# =============================================================================
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+ARG BUILD_TIME=unknown
+
+# ---------------------------------------------------------------------------
+# Build stage
+# ---------------------------------------------------------------------------
+FROM golang:1.24-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION
+ARG COMMIT_SHA
+ARG BUILD_TIME
+
+WORKDIR /build
+
+# Install build dependencies (bimg requires vips via CGO)
+RUN apk add --no-cache ca-certificates tzdata gcc musl-dev pkgconfig vips-dev
+
+# Dependency layer (cached separately from source)
+COPY go.mod go.sum* ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+# Source layer
+COPY . .
+
+# Build with CGO enabled for bimg/libvips
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build \
+    -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT_SHA} -X main.buildTime=${BUILD_TIME}" \
+    -o /build/api \
+    ./cmd/api
+
+# ---------------------------------------------------------------------------
+# Runtime stage - alpine minimal (required for libvips shared libraries)
+# ---------------------------------------------------------------------------
+FROM alpine:3.21 AS production
+
+ARG VERSION
+ARG COMMIT_SHA
+
+LABEL org.opencontainers.image.title="subcults-api" \
+      org.opencontainers.image.description="Subcults API server" \
+      org.opencontainers.image.source="https://github.com/subculture-collective/subcults" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT_SHA}"
+
+# Runtime dependencies only (vips runtime libs, certs, timezone)
+RUN apk add --no-cache ca-certificates tzdata vips && \
+    adduser -D -u 10001 nonroot
+
+# Application binary
+COPY --from=builder /build/api /app/api
+
+USER nonroot
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health/live || exit 1
+
+ENTRYPOINT ["/app/api"]

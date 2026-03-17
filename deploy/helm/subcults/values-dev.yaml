@@ -1,0 +1,32 @@
+# Development environment overrides
+global:
+  environment: development
+  imagePullPolicy: IfNotPresent
+
+api:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      memory: '128Mi'
+      cpu: '100m'
+    limits:
+      memory: '256Mi'
+      cpu: '250m'
+
+indexer:
+  replicaCount: 1
+
+frontend:
+  replicaCount: 1
+
+config:
+  corsAllowedOrigins: 'http://localhost:3000,http://localhost:5173'
+  tracingSampleRate: '1.0'
+
+networkPolicies:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false

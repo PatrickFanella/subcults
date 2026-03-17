@@ -1,0 +1,42 @@
+{
+  "title": "Szenen",
+  "detail": {
+    "title": "Szenendetails",
+    "description": "Beschreibung",
+    "location": "Standort",
+    "organizers": "Organisatoren",
+    "members": "Mitglieder",
+    "events": "Veranstaltungen"
+  },
+  "create": {
+    "title": "Neue Szene Erstellen",
+    "name": "Szenenname",
+    "description": "Beschreibung",
+    "location": "Standort",
+    "privacy": "Datenschutzeinstellungen",
+    "allowPrecise": "Genauen Standort zulassen",
+    "allowPreciseHelp": "Genauen Standort mit vertrauenswürdigen Benutzern teilen",
+    "success": "Szene erfolgreich erstellt",
+    "error": "Szene konnte nicht erstellt werden"
+  },
+  "edit": {
+    "title": "Szene Bearbeiten",
+    "success": "Szene erfolgreich aktualisiert",
+    "error": "Szene konnte nicht aktualisiert werden"
+  },
+  "delete": {
+    "confirm": "Sind Sie sicher, dass Sie diese Szene löschen möchten?",
+    "success": "Szene erfolgreich gelöscht",
+    "error": "Szene konnte nicht gelöscht werden"
+  },
+  "list": {
+    "empty": "Keine Szenen gefunden",
+    "nearby": "Szenen in der Nähe",
+    "all": "Alle Szenen"
+  },
+  "search": {
+    "placeholder": "Szenen suchen...",
+    "results": "{{count}} Szenen gefunden",
+    "noResults": "Keine Szenen entsprechen Ihrer Suche"
+  }
+}

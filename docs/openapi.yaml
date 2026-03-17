@@ -1,0 +1,2634 @@
+openapi: 3.0.3
+info:
+  title: Subcults API
+  description: |
+    Privacy-first platform for mapping underground music communities.
+    Combines real-time location awareness, live audio streaming, and trust-based discovery.
+
+    ## Authentication
+    JWT-based authentication with two token types:
+    - **Access tokens**: 15-minute expiry, includes `did` (Decentralized Identifier) claim
+    - **Refresh tokens**: 7-day expiry, cookie-only
+
+    Pass the access token via `Authorization: Bearer <token>` header or the `access_token` cookie.
+
+    ## Privacy
+    All public location data uses geohash-based jitter to prevent precise location tracking.
+    Precise coordinates are only available when `allow_precise` consent is granted.
+
+    ## Rate Limiting
+    Per-endpoint rate limits are enforced. When exceeded, the API returns `429 Too Many Requests`
+    with a `Retry-After` header.
+  version: 0.1.0
+  contact:
+    name: Subcults
+  license:
+    name: MIT
+
+servers:
+  - url: /
+    description: Current deployment
+
+tags:
+  - name: Scenes
+    description: Scene management (underground music communities)
+  - name: Events
+    description: Event management within scenes
+  - name: Posts
+    description: Content posts within scenes and events
+  - name: Streams
+    description: LiveKit audio streaming sessions
+  - name: Search
+    description: Full-text and geographic search
+  - name: Alliances
+    description: Trust relationships between scenes
+  - name: Trust
+    description: Trust score computation
+  - name: RSVP
+    description: Event RSVP management
+  - name: Membership
+    description: Scene membership management
+  - name: Payments
+    description: Stripe Connect payment integration
+  - name: Uploads
+    description: Media upload via Cloudflare R2
+  - name: LiveKit
+    description: LiveKit token issuance
+  - name: Auth
+    description: Authentication stubs
+  - name: Account
+    description: Account management and data export
+  - name: Telemetry
+    description: Client-side telemetry and error reporting
+  - name: Health
+    description: Health and readiness probes
+
+paths:
+  # ── Scenes ──────────────────────────────────────────────────────────
+  /scenes:
+    post:
+      operationId: createScene
+      tags: [Scenes]
+      summary: Create a new scene
+      description: Creates a new underground music scene. Enforces location consent automatically.
+      security:
+        - bearerAuth: []
+      x-rate-limit: 10/hour
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSceneRequest'
+      responses:
+        '201':
+          description: Scene created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Duplicate scene name for this owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /scenes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getScene
+      tags: [Scenes]
+      summary: Get a scene by ID
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Scene found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: updateScene
+      tags: [Scenes]
+      summary: Update a scene
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSceneRequest'
+      responses:
+        '200':
+          description: Scene updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteScene
+      tags: [Scenes]
+      summary: Soft-delete a scene
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Scene deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scenes/owned:
+    get:
+      operationId: listOwnedScenes
+      tags: [Scenes]
+      summary: List scenes owned by the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Owned scenes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OwnedSceneSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /scenes/{id}/palette:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    patch:
+      operationId: updateScenePalette
+      tags: [Scenes]
+      summary: Update a scene's color palette
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScenePaletteRequest'
+      responses:
+        '200':
+          description: Palette updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scenes/{id}/feed:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getSceneFeed
+      tags: [Scenes, Posts]
+      summary: Get the post feed for a scene
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Feed page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Membership ──────────────────────────────────────────────────────
+  /scenes/{id}/membership/request:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    post:
+      operationId: requestMembership
+      tags: [Membership]
+      summary: Request membership in a scene
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Membership request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Membership already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scenes/{id}/membership/{userId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: approveMembership
+      tags: [Membership]
+      summary: Approve a membership request
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Membership approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scenes/{id}/membership/{userId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: rejectMembership
+      tags: [Membership]
+      summary: Reject a membership request
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Membership rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Events ──────────────────────────────────────────────────────────
+  /events:
+    post:
+      operationId: createEvent
+      tags: [Events]
+      summary: Create a new event
+      security:
+        - bearerAuth: []
+      x-rate-limit: 5/hour
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /events/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getEvent
+      tags: [Events]
+      summary: Get an event by ID
+      description: Returns the event with RSVP counts, parent scene info, and active stream info.
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Event found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventWithRSVPCounts'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: updateEvent
+      tags: [Events]
+      summary: Update an event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /events/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    post:
+      operationId: cancelEvent
+      tags: [Events]
+      summary: Cancel an event
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelEventRequest'
+      responses:
+        '200':
+          description: Event cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /events/{id}/feed:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getEventFeed
+      tags: [Events, Posts]
+      summary: Get the post feed for an event
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Feed page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── RSVP ────────────────────────────────────────────────────────────
+  /events/{id}/rsvp:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    post:
+      operationId: createOrUpdateRSVP
+      tags: [RSVP]
+      summary: RSVP to an event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RSVPRequest'
+      responses:
+        '200':
+          description: RSVP created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RSVPResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteRSVP
+      tags: [RSVP]
+      summary: Remove RSVP from an event
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: RSVP removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Posts ────────────────────────────────────────────────────────────
+  /posts:
+    post:
+      operationId: createPost
+      tags: [Posts]
+      summary: Create a post
+      description: Create a post in a scene or event. Exactly one of `scene_id` or `event_id` is required.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /posts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    patch:
+      operationId: updatePost
+      tags: [Posts]
+      summary: Update a post
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deletePost
+      tags: [Posts]
+      summary: Soft-delete a post
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Post deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Streams ─────────────────────────────────────────────────────────
+  /streams:
+    post:
+      operationId: createStream
+      tags: [Streams]
+      summary: Start a live audio stream
+      description: Creates a new LiveKit streaming session. Exactly one of `scene_id` or `event_id` is required.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStreamRequest'
+      responses:
+        '201':
+          description: Stream session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamSessionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /streams/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getStream
+      tags: [Streams]
+      summary: Get stream session details
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Stream session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamSession'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: updateStream
+      tags: [Streams]
+      summary: Update stream session
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stream updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/end:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    post:
+      operationId: endStream
+      tags: [Streams]
+      summary: End a live stream
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stream ended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/join:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    post:
+      operationId: joinStream
+      tags: [Streams]
+      summary: Join a live stream
+      security:
+        - bearerAuth: []
+      x-rate-limit: 10/min
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinStreamRequest'
+      responses:
+        '200':
+          description: Joined stream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinStreamResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /streams/{id}/leave:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    post:
+      operationId: leaveStream
+      tags: [Streams]
+      summary: Leave a live stream
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Left stream
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/analytics:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getStreamAnalytics
+      tags: [Streams]
+      summary: Get stream analytics
+      description: Returns aggregate analytics for a stream session. All metrics preserve participant privacy.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stream analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamAnalytics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/participants:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getActiveParticipants
+      tags: [Streams]
+      summary: Get active stream participants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Participant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/participants/{participantId}/mute:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+      - name: participantId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: muteParticipant
+      tags: [Streams]
+      summary: Mute a stream participant
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Participant muted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/participants/{participantId}/kick:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+      - name: participantId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: kickParticipant
+      tags: [Streams]
+      summary: Kick a participant from stream
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Participant kicked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/featured_participant:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    patch:
+      operationId: setFeaturedParticipant
+      tags: [Streams]
+      summary: Set the featured participant
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Featured participant set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /streams/{id}/lock:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    patch:
+      operationId: lockStream
+      tags: [Streams]
+      summary: Toggle stream lock status
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lock status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Search ──────────────────────────────────────────────────────────
+  /search/scenes:
+    get:
+      operationId: searchScenes
+      tags: [Search]
+      summary: Search scenes
+      description: Full-text and geographic search for scenes. Results include jittered coordinates for privacy.
+      security:
+        - bearerAuth: []
+        - {}
+      x-rate-limit: 100/min
+      parameters:
+        - name: q
+          in: query
+          description: Search query text
+          schema:
+            type: string
+        - name: bbox
+          in: query
+          description: 'Bounding box as `west,south,east,north`'
+          schema:
+            type: string
+        - name: lat
+          in: query
+          description: Latitude for proximity scoring
+          schema:
+            type: number
+            format: double
+        - name: lon
+          in: query
+          description: Longitude for proximity scoring
+          schema:
+            type: number
+            format: double
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SceneSearchResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /search/events:
+    get:
+      operationId: searchEvents
+      tags: [Search]
+      summary: Search events
+      security:
+        - bearerAuth: []
+        - {}
+      x-rate-limit: 100/min
+      parameters:
+        - name: q
+          in: query
+          description: Search query text
+          schema:
+            type: string
+        - name: bbox
+          in: query
+          description: 'Bounding box as `west,south,east,north`'
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchEventsResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /search/posts:
+    get:
+      operationId: searchPosts
+      tags: [Search]
+      summary: Search posts
+      security:
+        - bearerAuth: []
+        - {}
+      x-rate-limit: 100/min
+      parameters:
+        - name: q
+          in: query
+          description: Search query text
+          schema:
+            type: string
+        - name: bbox
+          in: query
+          description: 'Bounding box as `west,south,east,north`'
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostSearchResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /search/global:
+    get:
+      operationId: searchGlobal
+      tags: [Search]
+      summary: Global search across all entity types
+      security:
+        - bearerAuth: []
+        - {}
+      x-rate-limit: 100/min
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query text
+          schema:
+            type: string
+        - name: lat
+          in: query
+          description: Latitude for proximity scoring
+          schema:
+            type: number
+            format: double
+        - name: lon
+          in: query
+          description: Longitude for proximity scoring
+          schema:
+            type: number
+            format: double
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Global search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalSearchResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  # ── Alliances ───────────────────────────────────────────────────────
+  /alliances:
+    post:
+      operationId: createAlliance
+      tags: [Alliances]
+      summary: Create a trust alliance between two scenes
+      security:
+        - bearerAuth: []
+      x-rate-limit: 10/hour
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAllianceRequest'
+      responses:
+        '201':
+          description: Alliance created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alliance'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Self-alliance or duplicate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /alliances/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceID'
+    get:
+      operationId: getAlliance
+      tags: [Alliances]
+      summary: Get an alliance by ID
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Alliance found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alliance'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: updateAlliance
+      tags: [Alliances]
+      summary: Update an alliance
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAllianceRequest'
+      responses:
+        '200':
+          description: Alliance updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alliance'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteAlliance
+      tags: [Alliances]
+      summary: Delete an alliance
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Alliance deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Trust ───────────────────────────────────────────────────────────
+  /trust/{sceneId}:
+    parameters:
+      - name: sceneId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getTrustScore
+      tags: [Trust]
+      summary: Get the trust score for a scene
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Trust score
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrustScoreResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Payments ────────────────────────────────────────────────────────
+  /payments/onboard:
+    post:
+      operationId: onboardScene
+      tags: [Payments]
+      summary: Start Stripe Connect onboarding for a scene
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnboardSceneRequest'
+      responses:
+        '200':
+          description: Onboarding URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardSceneResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Already onboarded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payments/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [Payments]
+      summary: Create a Stripe Checkout session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutSessionRequest'
+      responses:
+        '200':
+          description: Checkout session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSessionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /payments/status:
+    get:
+      operationId: getPaymentStatus
+      tags: [Payments]
+      summary: Get payment status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: session_id
+          in: query
+          schema:
+            type: string
+        - name: payment_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatusResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Uploads ─────────────────────────────────────────────────────────
+  /uploads/sign:
+    post:
+      operationId: signUpload
+      tags: [Uploads]
+      summary: Get a pre-signed upload URL for R2
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUploadRequest'
+      responses:
+        '200':
+          description: Pre-signed upload URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── LiveKit ─────────────────────────────────────────────────────────
+  /livekit/token:
+    post:
+      operationId: issueLiveKitToken
+      tags: [LiveKit]
+      summary: Issue a LiveKit JWT token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LiveKitTokenRequest'
+      responses:
+        '200':
+          description: LiveKit token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveKitTokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Auth ────────────────────────────────────────────────────────────
+  /api/auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [Auth]
+      summary: Refresh access token (stub)
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/login:
+    post:
+      operationId: login
+      tags: [Auth]
+      summary: Login (not implemented)
+      responses:
+        '501':
+          description: Not implemented
+
+  /api/auth/logout:
+    post:
+      operationId: logout
+      tags: [Auth]
+      summary: Logout and clear cookies
+      responses:
+        '204':
+          description: Logged out
+
+  /api/auth/me:
+    get:
+      operationId: getMe
+      tags: [Auth]
+      summary: Get current user (stub)
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Account ─────────────────────────────────────────────────────────
+  /api/account/export:
+    get:
+      operationId: exportAccountData
+      tags: [Account]
+      summary: Export all account data
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account data export
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/account/delete:
+    post:
+      operationId: deleteAccount
+      tags: [Account]
+      summary: Delete account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAccountRequest'
+      responses:
+        '200':
+          description: Account deleted
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Telemetry ───────────────────────────────────────────────────────
+  /api/telemetry:
+    post:
+      operationId: postTelemetryEvents
+      tags: [Telemetry]
+      summary: Submit client telemetry events
+      x-rate-limit: 100/min (by IP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryEventsRequest'
+      responses:
+        '200':
+          description: Events accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api/telemetry/metrics:
+    post:
+      operationId: postTelemetryMetrics
+      tags: [Telemetry]
+      summary: Submit client performance metrics
+      x-rate-limit: 100/min (by IP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryMetricsRequest'
+      responses:
+        '200':
+          description: Metrics accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api/log/client-error:
+    post:
+      operationId: handleClientError
+      tags: [Telemetry]
+      summary: Report a client-side error
+      x-rate-limit: 10/min (by IP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '202':
+          description: Error logged
+
+  # ── Health ──────────────────────────────────────────────────────────
+  /health/live:
+    get:
+      operationId: healthLive
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/ready:
+    get:
+      operationId: healthReady
+      tags: [Health]
+      summary: Readiness probe
+      description: Checks database, Redis, LiveKit, and Stripe connectivity.
+      responses:
+        '200':
+          description: All dependencies ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: One or more dependencies unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # ── Webhooks ────────────────────────────────────────────────────────
+  /internal/stripe:
+    post:
+      operationId: handleStripeWebhook
+      tags: [Payments]
+      summary: Stripe webhook handler
+      description: Receives Stripe events (checkout.session.completed, payment_intent.succeeded, etc.). Verified via Stripe-Signature header.
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid signature or payload
+
+  # ── Utility ─────────────────────────────────────────────────────────
+  /:
+    get:
+      operationId: root
+      tags: [Health]
+      summary: Service info
+      responses:
+        '200':
+          description: Service metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: subcults-api
+                  version:
+                    type: string
+                    example: 0.0.1
+
+  /api/csp-report:
+    post:
+      operationId: cspReport
+      tags: [Health]
+      summary: CSP violation report endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '204':
+          description: Report received
+
+  /metrics:
+    get:
+      operationId: metrics
+      tags: [Health]
+      summary: Prometheus metrics endpoint
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'JWT access token. Include as Authorization: Bearer <token> header or access_token cookie.'
+
+  parameters:
+    ResourceID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of results (default 20, max 100)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque pagination cursor from a previous response
+      schema:
+        type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until the rate limit resets
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ── Error ───────────────────────────────────────────────────────
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              enum:
+                - validation_error
+                - auth_failed
+                - not_found
+                - rate_limited
+                - internal_error
+                - forbidden
+                - conflict
+                - bad_request
+                - invalid_palette
+                - scene_deleted
+                - scene_not_found
+                - invalid_scene_name
+                - duplicate_scene_name
+                - invalid_time_range
+                - missing_target
+                - unsupported_type
+                - invalid_weight
+                - alliance_deleted
+                - self_alliance
+                - already_onboarded
+                - not_onboarded
+            message:
+              type: string
+              description: Human-readable error message
+
+    # ── Geographic ──────────────────────────────────────────────────
+    Point:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+
+    Palette:
+      type: object
+      required: [primary, secondary, accent, background, text]
+      description: Color scheme for a scene's visual identity. All hex codes in #RRGGBB format.
+      properties:
+        primary:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        secondary:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        accent:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        background:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        text:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+
+    # ── Scene ───────────────────────────────────────────────────────
+    Scene:
+      type: object
+      required: [id, name, owner_did, allow_precise, coarse_geohash]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        owner_did:
+          type: string
+        allow_precise:
+          type: boolean
+        precise_point:
+          $ref: '#/components/schemas/Point'
+        coarse_geohash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        visibility:
+          type: string
+          enum: [public, private, unlisted]
+        palette:
+          $ref: '#/components/schemas/Palette'
+        owner_user_id:
+          type: string
+        connected_account_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+        record_did:
+          type: string
+        record_rkey:
+          type: string
+
+    CreateSceneRequest:
+      type: object
+      required: [name, owner_did, coarse_geohash]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        owner_did:
+          type: string
+        allow_precise:
+          type: boolean
+          default: false
+        precise_point:
+          $ref: '#/components/schemas/Point'
+        coarse_geohash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        visibility:
+          type: string
+          enum: [public, private, unlisted]
+        palette:
+          $ref: '#/components/schemas/Palette'
+
+    UpdateSceneRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        visibility:
+          type: string
+          enum: [public, private, unlisted]
+        palette:
+          $ref: '#/components/schemas/Palette'
+        allow_precise:
+          type: boolean
+        precise_point:
+          $ref: '#/components/schemas/Point'
+
+    UpdateScenePaletteRequest:
+      type: object
+      required: [palette]
+      properties:
+        palette:
+          $ref: '#/components/schemas/Palette'
+
+    OwnedSceneSummary:
+      type: object
+      required: [id, name, coarse_geohash, visibility]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        coarse_geohash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        visibility:
+          type: string
+          enum: [public, private, unlisted]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        members_count:
+          type: integer
+        has_active_stream:
+          type: boolean
+
+    # ── Event ───────────────────────────────────────────────────────
+    Event:
+      type: object
+      required: [id, scene_id, title, allow_precise, coarse_geohash, starts_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scene_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        allow_precise:
+          type: boolean
+        precise_point:
+          $ref: '#/components/schemas/Point'
+        coarse_geohash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [scheduled, cancelled]
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+        cancelled_at:
+          type: string
+          format: date-time
+        cancellation_reason:
+          type: string
+        record_did:
+          type: string
+        record_rkey:
+          type: string
+        stream_session_id:
+          type: string
+
+    RSVPCounts:
+      type: object
+      properties:
+        going:
+          type: integer
+        maybe:
+          type: integer
+
+    EventWithRSVPCounts:
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          properties:
+            rsvp_counts:
+              $ref: '#/components/schemas/RSVPCounts'
+            scene:
+              $ref: '#/components/schemas/SceneSearchResult'
+            active_stream:
+              $ref: '#/components/schemas/ActiveStreamInfo'
+
+    CreateEventRequest:
+      type: object
+      required: [scene_id, title, coarse_geohash, starts_at]
+      properties:
+        scene_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        allow_precise:
+          type: boolean
+          default: false
+        precise_point:
+          $ref: '#/components/schemas/Point'
+        coarse_geohash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        allow_precise:
+          type: boolean
+        precise_point:
+          $ref: '#/components/schemas/Point'
+        coarse_geohash:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+
+    CancelEventRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    SearchEventsResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventWithRSVPCounts'
+        next_cursor:
+          type: string
+
+    # ── Post ────────────────────────────────────────────────────────
+    Attachment:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Legacy URL field
+        key:
+          type: string
+          description: R2 object key
+        type:
+          type: string
+          description: MIME type
+        size_bytes:
+          type: integer
+          format: int64
+        width:
+          type: integer
+          description: Image width in pixels
+        height:
+          type: integer
+          description: Image height in pixels
+        duration_seconds:
+          type: number
+          format: double
+          description: Audio duration in seconds
+
+    Post:
+      type: object
+      required: [id, author_did, text, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scene_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        author_did:
+          type: string
+        text:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        labels:
+          type: array
+          items:
+            type: string
+        record_did:
+          type: string
+        record_rkey:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+
+    CreatePostRequest:
+      type: object
+      required: [text]
+      description: Exactly one of `scene_id` or `event_id` is required.
+      properties:
+        scene_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        labels:
+          type: array
+          items:
+            type: string
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        labels:
+          type: array
+          items:
+            type: string
+
+    FeedCursor:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        id:
+          type: string
+
+    FeedResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        next_cursor:
+          $ref: '#/components/schemas/FeedCursor'
+
+    # ── Stream ──────────────────────────────────────────────────────
+    StreamSession:
+      type: object
+      required: [id, room_name, host_did, started_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scene_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        room_name:
+          type: string
+        host_did:
+          type: string
+        participant_count:
+          type: integer
+          deprecated: true
+        active_participant_count:
+          type: integer
+        record_did:
+          type: string
+        record_rkey:
+          type: string
+        join_count:
+          type: integer
+        leave_count:
+          type: integer
+        is_locked:
+          type: boolean
+        featured_participant:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+
+    ActiveStreamInfo:
+      type: object
+      properties:
+        stream_session_id:
+          type: string
+        room_name:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+
+    CreateStreamRequest:
+      type: object
+      description: Exactly one of `scene_id` or `event_id` is required.
+      properties:
+        scene_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+
+    StreamSessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        room_name:
+          type: string
+        scene_id:
+          type: string
+        event_id:
+          type: string
+        status:
+          type: string
+          enum: [active, ended]
+
+    JoinStreamRequest:
+      type: object
+      properties: {}
+
+    JoinStreamResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: LiveKit JWT token for the room
+        room_name:
+          type: string
+
+    Participant:
+      type: object
+      required: [id, stream_session_id, participant_id, user_did, joined_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        stream_session_id:
+          type: string
+          format: uuid
+        participant_id:
+          type: string
+          description: LiveKit participant identity
+        user_did:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+        left_at:
+          type: string
+          format: date-time
+        reconnection_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    StreamAnalytics:
+      type: object
+      properties:
+        id:
+          type: string
+        stream_session_id:
+          type: string
+        peak_concurrent_listeners:
+          type: integer
+        total_unique_participants:
+          type: integer
+        total_join_attempts:
+          type: integer
+        stream_duration_seconds:
+          type: integer
+        engagement_lag_seconds:
+          type: integer
+        avg_listen_duration_seconds:
+          type: number
+          format: double
+        median_listen_duration_seconds:
+          type: number
+          format: double
+        geographic_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Counts by 4-char geohash prefix
+        computed_at:
+          type: string
+          format: date-time
+
+    # ── RSVP ────────────────────────────────────────────────────────
+    RSVPRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [going, maybe]
+
+    RSVPResponse:
+      type: object
+      properties:
+        event_id:
+          type: string
+        status:
+          type: string
+          enum: [going, maybe]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ── Alliance ────────────────────────────────────────────────────
+    Alliance:
+      type: object
+      required: [from_scene_id, to_scene_id, weight]
+      properties:
+        from_scene_id:
+          type: string
+        to_scene_id:
+          type: string
+        weight:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+          maxLength: 256
+
+    CreateAllianceRequest:
+      type: object
+      required: [from_scene_id, to_scene_id, weight]
+      properties:
+        from_scene_id:
+          type: string
+        to_scene_id:
+          type: string
+        weight:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+          maxLength: 256
+
+    UpdateAllianceRequest:
+      type: object
+      properties:
+        weight:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+          maxLength: 256
+
+    # ── Trust ───────────────────────────────────────────────────────
+    TrustScoreBreakdown:
+      type: object
+      properties:
+        average_alliance_weight:
+          type: number
+          format: double
+        average_membership_trust_weight:
+          type: number
+          format: double
+        role_multiplier_aggregate:
+          type: number
+          format: double
+
+    TrustScoreResponse:
+      type: object
+      properties:
+        scene_id:
+          type: string
+        trust_score:
+          type: number
+          format: double
+        breakdown:
+          $ref: '#/components/schemas/TrustScoreBreakdown'
+        stale:
+          type: boolean
+        last_updated:
+          type: string
+
+    # ── Membership ──────────────────────────────────────────────────
+    Membership:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        scene_id:
+          type: string
+        user_did:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        trust_weight:
+          type: number
+          format: double
+        record_did:
+          type: string
+        record_rkey:
+          type: string
+        since:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ── Payment ─────────────────────────────────────────────────────
+    OnboardSceneRequest:
+      type: object
+      required: [scene_id]
+      properties:
+        scene_id:
+          type: string
+
+    OnboardSceneResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Stripe onboarding link
+        expires_at:
+          type: string
+          format: date-time
+
+    CheckoutSessionRequest:
+      type: object
+      required: [scene_id, items, success_url, cancel_url]
+      properties:
+        scene_id:
+          type: string
+        event_id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckoutItemRequest'
+        success_url:
+          type: string
+          format: uri
+        cancel_url:
+          type: string
+          format: uri
+
+    CheckoutItemRequest:
+      type: object
+      required: [price_id, quantity]
+      properties:
+        price_id:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+          minimum: 1
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        session_url:
+          type: string
+        session_id:
+          type: string
+
+    PaymentStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        amount_cents:
+          type: integer
+          format: int64
+        fee_cents:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    # ── Upload ──────────────────────────────────────────────────────
+    SignUploadRequest:
+      type: object
+      required: [contentType, sizeBytes]
+      properties:
+        contentType:
+          type: string
+          description: MIME type of the file
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        postId:
+          type: string
+
+    SignUploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Pre-signed S3/R2 upload URL
+        key:
+          type: string
+          description: R2 object key
+        expiresAt:
+          type: string
+          description: Expiration time (ISO 8601)
+
+    # ── LiveKit ─────────────────────────────────────────────────────
+    LiveKitTokenRequest:
+      type: object
+      required: [room_id]
+      properties:
+        room_id:
+          type: string
+        scene_id:
+          type: string
+        event_id:
+          type: string
+
+    LiveKitTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token
+        expires_at:
+          type: string
+          description: Token expiration (RFC 3339)
+
+    # ── Account ─────────────────────────────────────────────────────
+    DeleteAccountRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          description: Must be true to proceed
+
+    # ── Search ──────────────────────────────────────────────────────
+    SceneSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        jittered_centroid:
+          $ref: '#/components/schemas/Point'
+          description: Jittered coordinates (never precise)
+        coarse_geohash:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        visibility:
+          type: string
+        trust_score:
+          type: number
+          format: double
+          description: Only present when trust ranking feature is enabled
+
+    SceneSearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SceneSearchResult'
+        next_cursor:
+          type: string
+        count:
+          type: integer
+
+    PostSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        excerpt:
+          type: string
+          description: First 160 characters
+        scene_id:
+          type: string
+        trust_score:
+          type: number
+          format: double
+        created_at:
+          type: string
+
+    PostSearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostSearchResult'
+        next_cursor:
+          type: string
+        count:
+          type: integer
+
+    GlobalEventSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        scene_id:
+          type: string
+        title:
+          type: string
+        starts_at:
+          type: string
+        created_at:
+          type: string
+
+    GlobalSearchResult:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [scene, event, post]
+        scene:
+          $ref: '#/components/schemas/SceneSearchResult'
+        event:
+          $ref: '#/components/schemas/GlobalEventSearchResult'
+        post:
+          $ref: '#/components/schemas/PostSearchResult'
+
+    GlobalSearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GlobalSearchResult'
+        next_cursor:
+          type: string
+        count:
+          type: integer
+
+    # ── Telemetry ───────────────────────────────────────────────────
+    PerformanceMetric:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+          format: double
+        rating:
+          type: string
+        delta:
+          type: number
+          format: double
+        id:
+          type: string
+        navigationType:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+
+    TelemetryEventsRequest:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+
+    TelemetryMetricsRequest:
+      type: object
+      required: [metrics]
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceMetric'
+        userAgent:
+          type: string
+        url:
+          type: string
+
+    # ── Health ──────────────────────────────────────────────────────
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, unavailable]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+        uptime_s:
+          type: integer
+          format: int64

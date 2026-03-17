@@ -1,0 +1,51 @@
+{
+  "title": "Eventos",
+  "detail": {
+    "title": "Detalles del Evento",
+    "description": "Descripción",
+    "date": "Fecha y Hora",
+    "location": "Ubicación",
+    "scene": "Escena",
+    "attendees": "Asistentes",
+    "rsvp": "Confirmar Asistencia"
+  },
+  "create": {
+    "title": "Crear Nuevo Evento",
+    "name": "Nombre del Evento",
+    "description": "Descripción",
+    "date": "Fecha",
+    "time": "Hora",
+    "location": "Ubicación",
+    "scene": "Escena Asociada",
+    "success": "Evento creado exitosamente",
+    "error": "Error al crear el evento"
+  },
+  "edit": {
+    "title": "Editar Evento",
+    "success": "Evento actualizado exitosamente",
+    "error": "Error al actualizar el evento"
+  },
+  "delete": {
+    "confirm": "¿Estás seguro de que quieres eliminar este evento?",
+    "success": "Evento eliminado exitosamente",
+    "error": "Error al eliminar el evento"
+  },
+  "list": {
+    "empty": "No se encontraron eventos",
+    "upcoming": "Próximos Eventos",
+    "past": "Eventos Pasados",
+    "all": "Todos los Eventos"
+  },
+  "search": {
+    "placeholder": "Buscar eventos...",
+    "results": "{{count}} eventos encontrados",
+    "noResults": "No hay eventos que coincidan con tu búsqueda"
+  },
+  "rsvp": {
+    "going": "Asistiré",
+    "notGoing": "No Asistiré",
+    "maybe": "Tal Vez",
+    "success": "Confirmación actualizada",
+    "error": "Error al actualizar la confirmación"
+  }
+}

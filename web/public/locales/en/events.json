@@ -1,0 +1,51 @@
+{
+  "title": "Events",
+  "detail": {
+    "title": "Event Details",
+    "description": "Description",
+    "date": "Date & Time",
+    "location": "Location",
+    "scene": "Scene",
+    "attendees": "Attendees",
+    "rsvp": "RSVP"
+  },
+  "create": {
+    "title": "Create New Event",
+    "name": "Event Name",
+    "description": "Description",
+    "date": "Date",
+    "time": "Time",
+    "location": "Location",
+    "scene": "Associated Scene",
+    "success": "Event created successfully",
+    "error": "Failed to create event"
+  },
+  "edit": {
+    "title": "Edit Event",
+    "success": "Event updated successfully",
+    "error": "Failed to update event"
+  },
+  "delete": {
+    "confirm": "Are you sure you want to delete this event?",
+    "success": "Event deleted successfully",
+    "error": "Failed to delete event"
+  },
+  "list": {
+    "empty": "No events found",
+    "upcoming": "Upcoming Events",
+    "past": "Past Events",
+    "all": "All Events"
+  },
+  "search": {
+    "placeholder": "Search events...",
+    "results": "{{count}} events found",
+    "noResults": "No events match your search"
+  },
+  "rsvp": {
+    "going": "Going",
+    "notGoing": "Not Going",
+    "maybe": "Maybe",
+    "success": "RSVP updated",
+    "error": "Failed to update RSVP"
+  }
+}

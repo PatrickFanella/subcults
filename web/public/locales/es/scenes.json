@@ -1,0 +1,42 @@
+{
+  "title": "Escenas",
+  "detail": {
+    "title": "Detalles de la Escena",
+    "description": "Descripción",
+    "location": "Ubicación",
+    "organizers": "Organizadores",
+    "members": "Miembros",
+    "events": "Eventos"
+  },
+  "create": {
+    "title": "Crear Nueva Escena",
+    "name": "Nombre de la Escena",
+    "description": "Descripción",
+    "location": "Ubicación",
+    "privacy": "Configuración de Privacidad",
+    "allowPrecise": "Permitir ubicación precisa",
+    "allowPreciseHelp": "Compartir ubicación exacta con usuarios de confianza",
+    "success": "Escena creada exitosamente",
+    "error": "Error al crear la escena"
+  },
+  "edit": {
+    "title": "Editar Escena",
+    "success": "Escena actualizada exitosamente",
+    "error": "Error al actualizar la escena"
+  },
+  "delete": {
+    "confirm": "¿Estás seguro de que quieres eliminar esta escena?",
+    "success": "Escena eliminada exitosamente",
+    "error": "Error al eliminar la escena"
+  },
+  "list": {
+    "empty": "No se encontraron escenas",
+    "nearby": "Escenas Cercanas",
+    "all": "Todas las Escenas"
+  },
+  "search": {
+    "placeholder": "Buscar escenas...",
+    "results": "{{count}} escenas encontradas",
+    "noResults": "No hay escenas que coincidan con tu búsqueda"
+  }
+}

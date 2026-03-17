@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "subcults.fullname" . }}-config
+  labels:
+    {{- include "subcults.labels" . | nindent 4 }}
+data:
+  GO_ENV: {{ .Values.global.environment | quote }}
+  PORT: {{ .Values.config.port | quote }}
+  METRICS_PORT: {{ .Values.config.metricsPort | quote }}
+  CORS_ALLOWED_ORIGINS: {{ .Values.config.corsAllowedOrigins | quote }}
+  RANK_TRUST_ENABLED: {{ .Values.config.rankTrustEnabled | quote }}
+  TRACING_ENABLED: {{ .Values.config.tracingEnabled | quote }}
+  TRACING_EXPORTER_TYPE: {{ .Values.config.tracingExporterType | quote }}
+  TRACING_SAMPLE_RATE: {{ .Values.config.tracingSampleRate | quote }}
+  CANARY_ENABLED: {{ .Values.config.canaryEnabled | quote }}
+  JETSTREAM_URL: {{ .Values.config.jetstreamUrl | quote }}

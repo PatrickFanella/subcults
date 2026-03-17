@@ -1,0 +1,26 @@
+{
+  "name": "subcults-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for Subcults streaming functionality",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report ../e2e-report",
+    "test:load": "k6 run ../perf/k6/stream-load-test.js",
+    "test:load:smoke": "k6 run --vus 10 --duration 30s ../perf/k6/stream-load-test.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/ws": "^8.5.13",
+    "express": "^4.21.2",
+    "playwright": "^1.48.2",
+    "typescript": "^5.7.3",
+    "ws": "^8.18.0"
+  }
+}

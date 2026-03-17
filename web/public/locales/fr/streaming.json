@@ -1,0 +1,79 @@
+{
+  "joinButton": {
+    "join": "Rejoindre la Diffusion",
+    "connecting": "Connexion...",
+    "connected": "Connecté"
+  },
+  "participantList": {
+    "empty": "Aucun participant dans la salle",
+    "you": "Vous",
+    "speaking": "Parle..."
+  },
+  "audioControls": {
+    "mute": "Couper le microphone",
+    "unmute": "Activer le microphone",
+    "volumeControl": "Contrôle du volume",
+    "volumeLabel": "Volume",
+    "leave": "Quitter",
+    "leaveRoom": "Quitter la salle"
+  },
+  "connectionIndicator": {
+    "quality": "Qualité de la connexion",
+    "excellent": "Excellente",
+    "good": "Bonne",
+    "poor": "Mauvaise",
+    "unknown": "Inconnue"
+  },
+  "streamHeader": {
+    "live": "EN DIRECT",
+    "organizer": "Organisateur",
+    "listeners": "{{count}} auditeur",
+    "listeners_other": "{{count}} auditeurs"
+  },
+  "audioLevel": {
+    "muted": "Muet",
+    "speaking": "Parle",
+    "silent": "Silencieux"
+  },
+  "shareButtons": {
+    "share": "Partager",
+    "shareText": "Découvrez {{title}}!",
+    "copyLink": "Copier le Lien",
+    "copied": "Copié!",
+    "invite": "Inviter",
+    "shareOptions": "Options de partage"
+  },
+  "chat": {
+    "sidebar": "Barre latérale de discussion",
+    "title": "Discussion",
+    "noMessages": "Aucun message pour le moment",
+    "you": "Vous",
+    "placeholder": "Tapez un message...",
+    "messageInput": "Entrée de message",
+    "send": "Envoyer"
+  },
+  "streamPage": {
+    "invalidRoom": "Salle Invalide",
+    "noRoomId": "Aucun ID de salle fourni",
+    "streamRoom": "Salle de Diffusion",
+    "room": "Salle",
+    "error": "Erreur",
+    "participants": "Participants"
+  },
+  "miniPlayer": {
+    "label": "Mini lecteur",
+    "nowPlaying": "En Cours de Lecture",
+    "mute": "Couper",
+    "unmute": "Activer le son",
+    "volumeControl": "Contrôle du volume",
+    "volume": "Volume",
+    "volumeSlider": "Curseur de volume",
+    "leave": "Quitter",
+    "quality": {
+      "excellent": "Connexion excellente",
+      "good": "Bonne connexion",
+      "poor": "Connexion mauvaise",
+      "unknown": "Connexion inconnue"
+    }
+  }
+}

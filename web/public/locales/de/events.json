@@ -1,0 +1,51 @@
+{
+  "title": "Veranstaltungen",
+  "detail": {
+    "title": "Veranstaltungsdetails",
+    "description": "Beschreibung",
+    "date": "Datum & Uhrzeit",
+    "location": "Standort",
+    "scene": "Szene",
+    "attendees": "Teilnehmer",
+    "rsvp": "Zusagen"
+  },
+  "create": {
+    "title": "Neue Veranstaltung Erstellen",
+    "name": "Veranstaltungsname",
+    "description": "Beschreibung",
+    "date": "Datum",
+    "time": "Uhrzeit",
+    "location": "Standort",
+    "scene": "Zugehörige Szene",
+    "success": "Veranstaltung erfolgreich erstellt",
+    "error": "Veranstaltung konnte nicht erstellt werden"
+  },
+  "edit": {
+    "title": "Veranstaltung Bearbeiten",
+    "success": "Veranstaltung erfolgreich aktualisiert",
+    "error": "Veranstaltung konnte nicht aktualisiert werden"
+  },
+  "delete": {
+    "confirm": "Sind Sie sicher, dass Sie diese Veranstaltung löschen möchten?",
+    "success": "Veranstaltung erfolgreich gelöscht",
+    "error": "Veranstaltung konnte nicht gelöscht werden"
+  },
+  "list": {
+    "empty": "Keine Veranstaltungen gefunden",
+    "upcoming": "Bevorstehende Veranstaltungen",
+    "past": "Vergangene Veranstaltungen",
+    "all": "Alle Veranstaltungen"
+  },
+  "search": {
+    "placeholder": "Veranstaltungen suchen...",
+    "results": "{{count}} Veranstaltungen gefunden",
+    "noResults": "Keine Veranstaltungen entsprechen Ihrer Suche"
+  },
+  "rsvp": {
+    "going": "Zusagen",
+    "notGoing": "Absagen",
+    "maybe": "Vielleicht",
+    "success": "Zusage aktualisiert",
+    "error": "Zusage konnte nicht aktualisiert werden"
+  }
+}

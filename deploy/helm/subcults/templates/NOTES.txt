@@ -1,0 +1,23 @@
+Subcults has been deployed!
+
+{{- if .Values.api.enabled }}
+API:
+  Service: {{ include "subcults.fullname" . }}-api
+  Port: {{ .Values.api.service.port }}
+{{- end }}
+
+{{- if .Values.indexer.enabled }}
+Indexer:
+  Service: {{ include "subcults.fullname" . }}-indexer
+  Metrics Port: {{ .Values.indexer.service.port }}
+{{- end }}
+
+{{- if .Values.frontend.enabled }}
+Frontend:
+  Service: {{ include "subcults.fullname" . }}-frontend
+  Port: {{ .Values.frontend.service.port }}
+{{- end }}
+
+Verify the deployment:
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl get svc -l app.kubernetes.io/instance={{ .Release.Name }}
