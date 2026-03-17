@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # ---------------------------------------------------------------------------
 # Healthcheck binary - minimal wget from busybox for Docker healthchecks
 # ---------------------------------------------------------------------------
-FROM busybox:1.36-musl AS healthcheck
+FROM busybox:1.37-musl AS healthcheck
 
 # ---------------------------------------------------------------------------
 # Runtime stage - distroless for minimal attack surface
