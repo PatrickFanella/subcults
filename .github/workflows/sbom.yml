@@ -57,7 +57,7 @@ jobs:
             .
 
       - name: Upload Go SBOM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-go
           path: |
@@ -95,7 +95,7 @@ jobs:
             --package-lock-only
 
       - name: Upload NPM web SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-npm-web
           path: sbom-npm-web.cdx.json
@@ -131,7 +131,7 @@ jobs:
             --package-lock-only
 
       - name: Upload NPM e2e SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-npm-e2e
           path: sbom-npm-e2e.cdx.json

@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload govulncheck results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: govulncheck-results
           path: |
@@ -230,7 +230,7 @@ jobs:
 
       - name: Upload npm audit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: npm-audit-results-${{ matrix.directory }}
           path: |
@@ -376,7 +376,7 @@ jobs:
 
       - name: Upload Trivy results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-results-${{ matrix.dockerfile }}
           path: |
