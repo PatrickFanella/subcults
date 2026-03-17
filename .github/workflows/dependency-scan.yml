@@ -110,7 +110,7 @@ jobs:
 
       - name: Comment PR with results
         if: github.event_name == 'pull_request' && steps.parse.outputs.vuln_count != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -241,7 +241,7 @@ jobs:
 
       - name: Comment PR with results
         if: github.event_name == 'pull_request' && steps.parse.outputs.total != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -396,7 +396,7 @@ jobs:
 
       - name: Comment PR with results
         if: github.event_name == 'pull_request' && steps.parse.outputs.total != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
